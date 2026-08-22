@@ -31,7 +31,7 @@ export default function ItineraryBuilder() {
       <div className="mx-auto max-w-[980px] overflow-hidden rounded-[26px] border border-border bg-card shadow-2xl shadow-black/20">
         <header className="flex h-[76px] items-center justify-between border-b border-border px-5 sm:px-9">
           <Link href="/" className="font-serif text-xl font-bold tracking-tight">GlobeTrotter</Link>
-          <Link href="/auth" aria-label="Open profile" className="grid size-10 place-items-center rounded-full border border-border text-muted-foreground transition hover:bg-muted hover:text-foreground"><CircleUserRound size={22} /></Link>
+          <Link href="/profile" aria-label="Open profile" className="grid size-10 place-items-center rounded-full border border-border text-muted-foreground transition hover:bg-muted hover:text-foreground"><CircleUserRound size={22} /></Link>
         </header>
         <div className="border-b border-border px-5 py-5 sm:px-10">
           <Link href="/trips/new" className="mb-3 inline-flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"><ArrowLeft size={16} /> Back to trip details</Link>

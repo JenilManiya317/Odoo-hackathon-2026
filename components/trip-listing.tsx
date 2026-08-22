@@ -44,7 +44,7 @@ export function TripListing() {
             <span className="grid size-9 place-items-center rounded-xl bg-primary text-primary-foreground"><Compass size={19} /></span>
             <span className="font-serif text-xl font-bold tracking-tight">GlobeTrotter</span>
           </Link>
-          <Link href="/auth" className="grid size-10 place-items-center rounded-full border border-border bg-muted/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" aria-label="Open profile"><UserRound size={18} /></Link>
+          <Link href="/profile" className="grid size-10 place-items-center rounded-full border border-border bg-muted/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" aria-label="Open profile"><UserRound size={18} /></Link>
         </header>
 
         <section className="border-b border-border px-5 py-5 sm:px-8">

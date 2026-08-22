@@ -25,7 +25,7 @@ export default function Page() {
   const [saved, setSaved] = useState<string[]>([])
   const [activeTab, setActiveTab] = useState('Discover')
   const filters = ['All', 'Coastal', 'Cultural', 'Adventure', 'City']
-  const filtered = useMemo(() => destinations.filter((d) => (category === 'All' || d.type === category) && `${d.name} ${d.region}`.toLowerCase().includes(query.toLowerCase())), [category, query])
+  const filtered = useMemo(() => destinations.filter((d) => (category === 'All' || d.type === category) && `${d.name} ${d.region}`.toLowerCase().includes(query.toLowerCase()) && (activeTab === 'Saved' ? saved.includes(d.name) : true)), [category, query, activeTab, saved])
 
   return (
     <main className="min-h-screen bg-background px-3 py-3 text-foreground sm:px-6 sm:py-6">
@@ -36,12 +36,14 @@ export default function Page() {
             <span className="font-serif text-xl font-bold tracking-tight">GlobeTrotter</span>
           </button>
           <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex" aria-label="Primary navigation">
-            {['Discover', 'My trips', 'Saved'].map((item) => <button key={item} onClick={() => setActiveTab(item)} className={activeTab === item ? 'font-semibold text-foreground' : 'hover:text-foreground'}>{item}</button>)}
+            <Link href="/" className="font-semibold text-foreground">Discover</Link>
+            <Link href="/trips" className="hover:text-foreground">My trips</Link>
+            <button onClick={() => setActiveTab('Saved')} className={activeTab === 'Saved' ? 'font-semibold text-foreground' : 'hover:text-foreground'}>Saved</button>
           </nav>
           <div className="relative flex items-center gap-3">
             <button className="hidden rounded-full p-2.5 text-muted-foreground hover:bg-muted hover:text-foreground sm:block" aria-label="Notifications"><Bell size={18} /></button>
             <button onClick={() => setProfileOpen(!profileOpen)} className="flex items-center gap-2 rounded-full border border-border bg-muted/60 p-1 pr-3" aria-expanded={profileOpen} aria-label="Open profile menu"><span className="grid size-8 place-items-center rounded-full bg-accent text-xs font-bold text-accent-foreground">AM</span><ChevronDown size={14} className="text-muted-foreground" /></button>
-            {profileOpen && <div className="absolute right-0 top-12 z-20 w-40 rounded-xl border border-border bg-popover p-2 text-sm shadow-xl"><Link href="/auth" className="block w-full rounded-lg px-3 py-2 text-left hover:bg-muted">Your profile</Link><Link href="/auth" className="block w-full rounded-lg px-3 py-2 text-left hover:bg-muted">Log in</Link></div>}
+            {profileOpen && <div className="absolute right-0 top-12 z-20 w-40 rounded-xl border border-border bg-popover p-2 text-sm shadow-xl"><Link href="/profile" className="block w-full rounded-lg px-3 py-2 text-left hover:bg-muted">Your profile</Link><Link href="/auth" className="block w-full rounded-lg px-3 py-2 text-left hover:bg-muted">Log in</Link></div>}
           </div>
         </header>
 

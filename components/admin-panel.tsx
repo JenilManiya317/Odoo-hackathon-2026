@@ -64,7 +64,9 @@ export function AdminPanel() {
   )
 }
 
-function AnalyticsVisual({ activeTab, cities }: { activeTab: AdminTab; cities: typeof cities }) {
+type CityData = { name: string; country: string; value: string; count: string; };
+
+function AnalyticsVisual({ activeTab, cities }: { activeTab: AdminTab; cities: CityData[] }) {
   const isCities = activeTab === 'Popular cities'
   const isActivities = activeTab === 'Popular Activities'
   const labels = isCities ? cities.map((city) => city.name) : isActivities ? ['Hiking', 'Food tours', 'Museums', 'Paragliding'] : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']

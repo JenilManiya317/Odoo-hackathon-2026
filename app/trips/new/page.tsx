@@ -1,6 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 import NewTripForm from '@/components/new-trip-form'
 
+export const metadata = {
+  title: 'Plan a New Trip | GlobeTrotter',
+  description: 'Start planning your next adventure with GlobeTrotter.',
+}
+
 export default async function NewTripPage() {
   const supabase = await createClient()
   const [{ data: cities }, { data: activities }] = await Promise.all([
