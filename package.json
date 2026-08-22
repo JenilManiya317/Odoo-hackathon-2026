@@ -32,12 +32,7 @@
     "tailwindcss": "^4.3.3",
     "typescript": "5.7.3"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "msw"
-    ],
-    "overrides": {
-      "hono": "4.12.25"
-    }
+  "overrides": {
+    "hono": "4.12.25"
   }
 }
