@@ -1,6 +1,7 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import { MobileNavbar } from '@/components/mobile-navbar'
 
 export const metadata: Metadata = {
   title: 'GlobeTrotter — Go somewhere wonderful',
@@ -18,8 +19,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className="bg-background">
-      <body className="antialiased">
+      <body className="antialiased pb-[80px] md:pb-0">
         {children}
+        <MobileNavbar />
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
