@@ -23,6 +23,45 @@ const tripImages = ['https://images.unsplash.com/photo-1493976040374-85c8e12f0c0
 
 const categories: Trip['status'][] = ['Ongoing', 'Up-coming', 'Liked & Saved', 'Completed']
 
+const defaultStarterTrips: Trip[] = [
+  {
+    id: 'starter-kyoto',
+    name: 'Trip to Kyoto, Japan',
+    destination: 'Kyoto, Japan',
+    dates: '2026-10-10 — 2026-10-18',
+    status: 'Up-coming',
+    image: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1200&q=85',
+    places: 3,
+    accent: 'Suggested Trip',
+    activities: ['Fushimi Inari Shrine Hike', 'Arashiyama Bamboo Grove Walk'],
+    isFavorite: false,
+  },
+  {
+    id: 'starter-paris',
+    name: 'Favorited: Paris, France',
+    destination: 'Paris, France',
+    dates: 'Saved to Favorites',
+    status: 'Liked & Saved',
+    image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1200&q=85',
+    places: 1,
+    accent: 'Liked Place',
+    activities: [],
+    isFavorite: true,
+  },
+  {
+    id: 'starter-santorini',
+    name: 'Favorited: Santorini, Greece',
+    destination: 'Santorini, Greece',
+    dates: 'Saved to Favorites',
+    status: 'Liked & Saved',
+    image: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?auto=format&fit=crop&w=1200&q=85',
+    places: 1,
+    accent: 'Liked Place',
+    activities: [],
+    isFavorite: true,
+  },
+]
+
 export function TripListing() {
   const [trips, setTrips] = useState<Trip[]>([])
   const [loading, setLoading] = useState(true)
@@ -67,7 +106,8 @@ export function TripListing() {
         isFavorite: true,
       }))
 
-      setTrips([...createdTrips, ...likedTrips])
+      const combined = [...createdTrips, ...likedTrips]
+      setTrips(combined.length > 0 ? combined : defaultStarterTrips)
       setLoading(false)
     }
     loadTrips()
@@ -108,7 +148,12 @@ export function TripListing() {
             <span className="grid size-9 place-items-center rounded-xl bg-primary text-primary-foreground"><Compass size={19} /></span>
             <span className="font-serif text-xl font-bold tracking-tight">GlobeTrotter</span>
           </Link>
-          <Link href="/auth" className="grid size-10 place-items-center rounded-full border border-border bg-muted/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" aria-label="Open profile"><UserRound size={18} /></Link>
+          <div className="flex items-center gap-2">
+            <Link href="/trips/new" className="flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-xs font-bold text-accent-foreground shadow-md transition hover:opacity-90">
+              <Plus size={15} /> Plan a Trip
+            </Link>
+            <Link href="/auth" className="grid size-10 place-items-center rounded-full border border-border bg-muted/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" aria-label="Open profile"><UserRound size={18} /></Link>
+          </div>
         </header>
 
         <section className="border-b border-border px-5 py-5 sm:px-8">
@@ -176,9 +221,24 @@ export function TripListing() {
             )
           })}
           {!filteredTrips.length && !loading && (
-            <div className="rounded-2xl border border-dashed border-border py-16 text-center">
-              <Search className="mx-auto text-muted-foreground" size={26} />
-              <p className="mt-3 text-sm text-muted-foreground">No trips or saved destinations found.</p>
+            <div className="rounded-3xl border border-dashed border-border p-8 text-center bg-muted/10 space-y-4">
+              <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-accent/15 text-accent">
+                <Compass size={24} />
+              </div>
+              <div>
+                <h3 className="font-serif text-2xl font-bold">Start Your First Adventure</h3>
+                <p className="mt-1 text-sm text-muted-foreground max-w-md mx-auto">
+                  No trips match &quot;{query}&quot;. Plan a new journey or explore recommended destinations.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                <Link href="/trips/new" className="flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-xs font-bold text-accent-foreground">
+                  <Plus size={15} /> Plan a new trip
+                </Link>
+                <Link href="/recommendations" className="flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-xs font-bold hover:bg-muted">
+                  Explore AI Recommendations
+                </Link>
+              </div>
             </div>
           )}
         </section>
