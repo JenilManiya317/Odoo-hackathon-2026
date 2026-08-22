@@ -6,6 +6,12 @@ const nextConfig = {
   images: {
     dangerouslyAllowSVG: true,
     dangerouslyAllowLocalIP: true,
+    localPatterns: [
+      {
+        pathname: '/api/destination-image',
+        search: '?name=*&country=*',
+      },
+    ],
     remotePatterns: [
       {
         protocol: 'https',
