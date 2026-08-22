@@ -41,6 +41,7 @@ import {
 const ALL_STYLES = ['Cultural', 'Adventure', 'Coastal', 'City', 'Food & Dining', 'Nature', 'Relaxation']
 const ALL_BUDGETS: UserPreferences['budget_tier'][] = ['Budget', 'Moderate', 'Luxury', 'Ultra-Luxury']
 const ALL_ACCOMMODATIONS: UserPreferences['preferred_accommodation'][] = ['Hostel', 'Airbnb', 'Hotel', 'Resort', 'Villa', 'Riad']
+const FALLBACK_DESTINATION_IMAGE = 'https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=900&q=80'
 
 export function RecommendationsView() {
   const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_USER_PREFERENCES)
@@ -311,6 +312,10 @@ export function RecommendationsView() {
                       src={dest.image}
                       alt={dest.name}
                       className="size-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      onError={(event) => {
+                        event.currentTarget.onerror = null
+                        event.currentTarget.src = FALLBACK_DESTINATION_IMAGE
+                      }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
