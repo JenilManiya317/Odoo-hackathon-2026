@@ -51,21 +51,15 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Backend not running — return a helpful offline message instead of error
-    const offlineReplies = [
-      "✈️ Trotter AI is warming up! Make sure the Python backend is running: `cd chatbot-backend && uvicorn main:app --reload`",
-      "🌍 The travel assistant is offline right now. Start it with: `cd chatbot-backend && uvicorn main:app --reload`",
-    ]
-
     console.error('[chatbot/route] Could not reach backend:', err)
     return NextResponse.json(
       {
-        reply: offlineReplies[Math.floor(Math.random() * offlineReplies.length)],
+        reply: 'I am having trouble connecting right now. Please try your travel question again in a moment.',
         confidence: 0,
-        model: 'offline-fallback',
+        model: 'connection-fallback',
         timestamp: new Date().toISOString(),
       },
-      { status: 200 }
+      { status: 503 }
     )
   }
 }

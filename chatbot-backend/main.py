@@ -13,31 +13,27 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import numpy as np
 import re
-import nltk
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from train_data import TRAVEL_QA_PAIRS
 import random
 from datetime import datetime
 
-# ── Download NLTK data ─────────────────────────────────────────────────────────
 try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt', quiet=True)
-
-try:
-    nltk.data.find('corpora/stopwords')
-except LookupError:
-    nltk.download('stopwords', quiet=True)
-
-try:
-    nltk.data.find('corpora/wordnet')
-except LookupError:
-    nltk.download('wordnet', quiet=True)
-
-from nltk.stem import WordNetLemmatizer
-from nltk.corpus import stopwords
+    import nltk
+    from nltk.corpus import stopwords
+    from nltk.stem import WordNetLemmatizer
+    try:
+        nltk.data.find('corpora/stopwords')
+        nltk.data.find('corpora/wordnet')
+        NLTK_STOP_WORDS = set(stopwords.words('english'))
+        NLTK_LEMMATIZER = WordNetLemmatizer()
+    except LookupError:
+        NLTK_STOP_WORDS = set()
+        NLTK_LEMMATIZER = None
+except ImportError:
+    NLTK_STOP_WORDS = set()
+    NLTK_LEMMATIZER = None
 
 # ── NLP Model Class ────────────────────────────────────────────────────────────
 class TravelNLPModel:
@@ -48,8 +44,8 @@ class TravelNLPModel:
     """
 
     def __init__(self):
-        self.lemmatizer = WordNetLemmatizer()
-        self.stop_words = set(stopwords.words('english'))
+        self.lemmatizer = NLTK_LEMMATIZER
+        self.stop_words = NLTK_STOP_WORDS
         self.vectorizer = TfidfVectorizer(
             ngram_range=(1, 3),          # unigrams, bigrams, trigrams
             analyzer='word',
@@ -68,11 +64,9 @@ class TravelNLPModel:
         text = re.sub(r'[^\w\s]', ' ', text)
         text = re.sub(r'\s+', ' ', text)
         tokens = text.split()
-        tokens = [
-            self.lemmatizer.lemmatize(t)
-            for t in tokens
-            if t not in self.stop_words or len(t) <= 3
-        ]
+        tokens = [t for t in tokens if t not in self.stop_words or len(t) <= 3]
+        if self.lemmatizer:
+            tokens = [self.lemmatizer.lemmatize(t) for t in tokens]
         return ' '.join(tokens)
 
     def _train(self):

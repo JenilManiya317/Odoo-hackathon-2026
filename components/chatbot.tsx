@@ -100,7 +100,8 @@ export function ChatbotWidget() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: trimmed }),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error || 'Chatbot request failed')
 
       const botMsg: Message = {
         id: `bot-${Date.now()}`,
@@ -118,7 +119,7 @@ export function ChatbotWidget() {
         {
           id: `err-${Date.now()}`,
           role: 'assistant',
-          content: '⚠️ Connection issue. Make sure the chatbot backend is running!',
+          content: 'I am having trouble connecting right now. Please try again in a moment.',
           timestamp: new Date(),
         },
       ])
