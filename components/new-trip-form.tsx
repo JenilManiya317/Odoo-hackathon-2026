@@ -112,7 +112,13 @@ export default function NewTripForm({ cities, activities }: { cities: City[]; ac
         }).maybeSingle()
         const createdCity = createdCityData as City | null
         if (cityError || !createdCity) {
-          setError('We could not save this destination. Please try again.')
+          console.error('Could not create catalog destination:', cityError)
+          const errorMessage = cityError?.message?.toLowerCase() ?? ''
+          setError(
+            errorMessage.includes('function') || errorMessage.includes('rpc')
+              ? 'Database setup is incomplete. Run migration 010_catalog_city_function.sql in Supabase, then try again.'
+              : cityError?.message || 'We could not save this destination. Please try again.'
+          )
           return
         }
         city = createdCity
