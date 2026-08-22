@@ -31,7 +31,7 @@ export default function NewTripForm({ cities, activities }: { cities: City[]; ac
   const searchParams = useSearchParams()
   const activityId = searchParams.get('activityId')
   const cityParam = searchParams.get('city')
-  const [form, setForm] = useState({ name: '', startDate: '', place: '', endDate: '' })
+  const [form, setForm] = useState({ startDate: '', place: '', endDate: '' })
   const [selected, setSelected] = useState<Activity[]>([])
   const [error, setError] = useState('')
   const [status, setStatus] = useState('')
@@ -80,7 +80,7 @@ export default function NewTripForm({ cities, activities }: { cities: City[]; ac
     event.preventDefault()
     setError('')
     setStatus('')
-    if (!form.name.trim() || !form.place || !form.startDate || !form.endDate) return setError('Please complete every trip field.')
+    if (!form.place || !form.startDate || !form.endDate) return setError('Please complete every trip field.')
     if (form.startDate >= form.endDate) return setError('End date must be after the start date.')
     setLoading(true)
     try {
@@ -121,7 +121,6 @@ export default function NewTripForm({ cities, activities }: { cities: City[]; ac
         .from('trips')
         .insert({
           user_id: user.id,
-          name: form.name.trim(),
           start_date: form.startDate,
           end_date: form.endDate,
           description: `Trip to ${form.place}`,
@@ -202,17 +201,15 @@ export default function NewTripForm({ cities, activities }: { cities: City[]; ac
               </span>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <label className="sm:col-span-2 lg:col-span-1">
-                <span className="mb-2 block text-xs font-semibold text-muted-foreground">Trip name</span>
-                <input required value={form.name} onChange={(e) => update('name', e.target.value)} placeholder="Summer escape" className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:border-accent" />
-              </label>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <label className="sm:col-span-2 lg:col-span-1">
                 <span className="mb-2 block text-xs font-semibold text-muted-foreground">Select a place</span>
-                <select required value={form.place} onChange={(e) => update('place', e.target.value)} className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:border-accent">
-                  <option value="">Choose a destination</option>
-                  {availableCities.map((city) => <option key={city.id} value={`${city.name}, ${city.country}`}>{city.name}, {city.country}</option>)}
-                </select>
+                <input list="city-options" required value={form.place} onChange={(e) => update('place', e.target.value)} placeholder="Choose a destination" className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:border-accent" />
+                <datalist id="city-options">
+                  {availableCities.map((city) => (
+                    <option key={city.id} value={`${city.name}, ${city.country}`} />
+                  ))}
+                </datalist>
               </label>
               <label>
                 <span className="mb-2 block text-xs font-semibold text-muted-foreground">Start date</span>
