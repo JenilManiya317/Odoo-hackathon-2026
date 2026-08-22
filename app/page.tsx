@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { ArrowRight, Bell, ChevronDown, Compass, Heart, MapPin, Plus, Search, SlidersHorizontal, Sparkles, Star, X } from 'lucide-react'
 
@@ -40,14 +41,14 @@ export default function Page() {
           <div className="relative flex items-center gap-3">
             <button className="hidden rounded-full p-2.5 text-muted-foreground hover:bg-muted hover:text-foreground sm:block" aria-label="Notifications"><Bell size={18} /></button>
             <button onClick={() => setProfileOpen(!profileOpen)} className="flex items-center gap-2 rounded-full border border-border bg-muted/60 p-1 pr-3" aria-expanded={profileOpen} aria-label="Open profile menu"><span className="grid size-8 place-items-center rounded-full bg-accent text-xs font-bold text-accent-foreground">AM</span><ChevronDown size={14} className="text-muted-foreground" /></button>
-            {profileOpen && <div className="absolute right-0 top-12 z-20 w-40 rounded-xl border border-border bg-popover p-2 text-sm shadow-xl"><button className="w-full rounded-lg px-3 py-2 text-left hover:bg-muted">Your profile</button><button className="w-full rounded-lg px-3 py-2 text-left hover:bg-muted">Settings</button></div>}
+            {profileOpen && <div className="absolute right-0 top-12 z-20 w-40 rounded-xl border border-border bg-popover p-2 text-sm shadow-xl"><Link href="/auth" className="block w-full rounded-lg px-3 py-2 text-left hover:bg-muted">Your profile</Link><Link href="/auth" className="block w-full rounded-lg px-3 py-2 text-left hover:bg-muted">Log in</Link></div>}
           </div>
         </header>
 
         <section className="relative mx-4 mt-4 overflow-hidden rounded-2xl bg-[#163a47] px-6 py-10 sm:mx-8 sm:px-12 sm:py-16">
           <img src="https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1800&q=85" alt="Sunlit mountain lake surrounded by peaks" className="absolute inset-0 size-full object-cover opacity-55 mix-blend-luminosity" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#102c36]/95 via-[#163a47]/50 to-transparent" />
-          <div className="relative max-w-xl"><p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-accent"><Sparkles size={14} /> Curated for curious minds</p><h1 className="font-serif text-4xl leading-[1.05] tracking-tight text-white sm:text-6xl">Go somewhere<br /><i className="font-normal text-accent">wonderful.</i></h1><p className="mt-5 max-w-md text-sm leading-6 text-white/75 sm:text-base">Find the places that make you feel most alive. Your next story starts here.</p><button className="mt-7 flex items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-bold text-accent-foreground transition-transform hover:scale-[1.02]">Start exploring <ArrowRight size={16} /></button></div>
+          <div className="relative max-w-xl"><p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-accent"><Sparkles size={14} /> Curated for curious minds</p><h1 className="font-serif text-4xl leading-[1.05] tracking-tight text-white sm:text-6xl">Go somewhere<br /><i className="font-normal text-accent">wonderful.</i></h1><p className="mt-5 max-w-md text-sm leading-6 text-white/75 sm:text-base">Find the places that make you feel most alive. Your next story starts here.</p><Link href="/trips/new" className="mt-7 flex w-fit items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-bold text-accent-foreground transition-transform hover:scale-[1.02]">Start exploring <ArrowRight size={16} /></Link></div>
         </section>
 
         <section className="px-4 pb-8 pt-7 sm:px-8 sm:pt-9">
