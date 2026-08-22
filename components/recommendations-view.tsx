@@ -157,9 +157,10 @@ export function RecommendationsView() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setTunerOpen(true)}
-              className="flex items-center gap-2 rounded-xl border border-accent/40 bg-accent/10 px-3.5 py-2 text-xs font-semibold text-accent transition hover:bg-accent hover:text-accent-foreground"
+              className="flex items-center gap-2 rounded-xl border border-accent/40 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent transition hover:bg-accent hover:text-accent-foreground sm:px-3.5"
+              aria-label="Tune Persona"
             >
-              <SlidersHorizontal size={14} /> Tune Persona
+              <SlidersHorizontal size={14} /> <span className="hidden sm:inline">Tune Persona</span>
             </button>
             <Link
               href="/profile"

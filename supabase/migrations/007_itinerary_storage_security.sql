@@ -6,3 +6,4 @@ drop policy if exists "Authenticated users can upload trip covers" on storage.ob
 create policy "Authenticated users can upload trip covers"
 on storage.objects for insert
 with check (bucket_id = 'trip-covers' and auth.uid()::text = (storage.foldername(name))[1]);
+

@@ -15,6 +15,17 @@ export async function updateSession(request: NextRequest) {
     supabaseKey,
     { cookies: { getAll: () => request.cookies.getAll(), setAll: (cookiesToSet) => { cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value)); response = NextResponse.next({ request }); cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options)) } } },
   )
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
+  const isAuthRoute = request.nextUrl.pathname.startsWith('/auth')
+  const protectedPath = request.nextUrl.pathname === '/'
+    || ['/profile', '/calendar', '/trips', '/activities', '/recommendations', '/admin'].some((path) => request.nextUrl.pathname.startsWith(path))
+
+  if (protectedPath && !user) {
+    return NextResponse.redirect(new URL('/auth', request.url))
+  }
+
+  if (user && isAuthRoute) {
+    return NextResponse.redirect(new URL('/', request.url))
+  }
   return response
 }
