@@ -182,7 +182,7 @@ export default function Page() {
           <div className="absolute inset-0 bg-gradient-to-r from-[#102c36]/95 via-[#163a47]/50 to-transparent" />
           <div className="relative max-w-xl">
             <p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-              <Sparkles size={14} /> Powered by Supabase User Data & AI
+              <Sparkles size={14} /> Powered by User Data & AI
             </p>
             <h1 className="font-serif text-4xl leading-[1.05] tracking-tight text-white sm:text-6xl">
               Go somewhere<br /><i className="font-normal text-accent">wonderful.</i>
@@ -201,7 +201,7 @@ export default function Page() {
           </div>
         </section>
 
-        {/* Supabase AI Recommendations Highlight Section */}
+        {/* AI Recommendations Highlight Section */}
         <section className="mx-4 mt-6 rounded-2xl border border-accent/30 bg-accent/5 p-5 sm:mx-8 sm:p-7">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -245,11 +245,16 @@ export default function Page() {
                     <div className="rounded-lg bg-accent/10 p-2 text-[11px] text-accent font-medium leading-relaxed">
                       ✓ {pick.matchReasons[0] || 'Matches your travel persona'}
                     </div>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/50">
-                      <span>Est. ${pick.avgDailyCost}/day</span>
-                      <span>Stay: {pick.recommendedAccommodation}</span>
-                      <Link href="/trips/new" className="font-semibold text-accent hover:underline flex items-center gap-0.5">
-                        Plan <ArrowRight size={11} />
+                    <div className="flex flex-col gap-2 pt-2 border-t border-border/50">
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground font-semibold">
+                        <span>Est. ₹{pick.avgDailyCost}/day</span>
+                        <span>Stay: {pick.recommendedAccommodation}</span>
+                      </div>
+                      <Link
+                        href={`/trips/new?city=${encodeURIComponent(`${pick.name}, ${pick.country}`)}`}
+                        className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary/90 px-2 py-2 text-[11px] font-bold text-primary-foreground transition hover:bg-primary"
+                      >
+                        <Plus size={14} /> Plan trip to {pick.name}
                       </Link>
                     </div>
                   </div>
@@ -332,9 +337,23 @@ export default function Page() {
                     <Heart size={15} fill={isSaved ? 'currentColor' : 'none'} className={isSaved ? 'text-accent' : 'text-white'} />
                   </button>
                   <div className="absolute bottom-3 left-3 right-3 text-white">
-                    <p className="text-[10px] font-medium uppercase tracking-wider text-white/70">{destination.region}</p>
-                    <h3 className="font-serif text-lg leading-tight">{destination.name}</h3>
-                    <p className="mt-1 text-[11px] text-accent/90 line-clamp-1 font-medium">{destination.matchReasons[0]}</p>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-[10px] font-medium uppercase tracking-wider text-white/70">{destination.region}</p>
+                        <h3 className="font-serif text-lg leading-tight">{destination.name}</h3>
+                      </div>
+                      <div className="text-right">
+                        <span className="block text-[10px] text-white/70 uppercase">Est. Cost</span>
+                        <span className="text-[11px] font-bold text-accent">₹{destination.avgDailyCost}/day</span>
+                      </div>
+                    </div>
+                    <p className="mt-1 mb-2.5 text-[11px] text-accent/90 line-clamp-1 font-medium">{destination.matchReasons[0]}</p>
+                    <Link
+                      href={`/trips/new?city=${encodeURIComponent(`${destination.name}, ${destination.country}`)}`}
+                      className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary/90 px-2 py-1.5 text-[10px] font-bold text-primary-foreground backdrop-blur-sm transition hover:bg-primary"
+                    >
+                      <Plus size={12} /> Plan trip to {destination.name}
+                    </Link>
                   </div>
                 </article>
               )

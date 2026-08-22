@@ -178,14 +178,14 @@ export function RecommendationsView() {
             <div className="max-w-2xl">
               <div className="flex flex-wrap items-center gap-2 mb-3">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-accent backdrop-blur-md">
-                  <Sparkles size={13} /> Supabase AI Engine
+                  <Sparkles size={13} /> AI Engine
                 </span>
                 <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80 backdrop-blur-md">
                   {preferences.traveler_type}
                 </span>
                 {savedSuccess && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-xs text-emerald-300">
-                    <Check size={12} /> Synced to Supabase
+                    <Check size={12} /> Synced
                   </span>
                 )}
               </div>
@@ -195,7 +195,7 @@ export function RecommendationsView() {
               </h1>
 
               <p className="mt-3 text-sm text-white/80 max-w-xl leading-relaxed">
-                Recommendations calculated from your Supabase profile preferences, budget tier, preferred accommodations, and travel history.
+                Recommendations calculated from your profile preferences, budget tier, preferred accommodations, and travel history.
               </p>
 
               {/* Active Persona Tags */}
@@ -374,7 +374,7 @@ export function RecommendationsView() {
                     <div className="grid grid-cols-3 gap-2 rounded-xl border border-border bg-background/50 p-2.5 text-center text-xs">
                       <div>
                         <span className="block text-[10px] text-muted-foreground uppercase">Est. Cost</span>
-                        <span className="font-semibold text-foreground">${dest.avgDailyCost}/day</span>
+                        <span className="font-semibold text-foreground">₹{dest.avgDailyCost}/day</span>
                       </div>
                       <div>
                         <span className="block text-[10px] text-muted-foreground uppercase">Stay</span>
@@ -495,7 +495,7 @@ export function RecommendationsView() {
                 </span>
                 <div>
                   <h2 className="font-serif text-xl">Tune Travel Persona</h2>
-                  <p className="text-xs text-muted-foreground">Updates your Supabase user preferences instantly.</p>
+                  <p className="text-xs text-muted-foreground">Updates your user preferences instantly.</p>
                 </div>
               </div>
               <button

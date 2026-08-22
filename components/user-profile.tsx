@@ -239,7 +239,7 @@ export function UserProfile() {
             <div className="min-w-0 flex-1 rounded-2xl border border-border bg-background p-5 sm:p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Your Profile & Supabase Persona</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Your Profile & Travel Persona</p>
                   {editing ? (
                     <div className="mt-3 grid gap-3 sm:grid-cols-2">
                       <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full Name" className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
@@ -272,7 +272,7 @@ export function UserProfile() {
           </div>
         </section>
 
-        {/* Travel Persona & Preferences Panel (Synced with Supabase) */}
+        {/* Travel Persona & Preferences Panel */}
         <section className="border-b border-border bg-muted/20 px-5 py-7 sm:px-8 sm:py-8">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
             <div>
@@ -287,7 +287,7 @@ export function UserProfile() {
             <div className="flex items-center gap-2">
               {savedMsg && (
                 <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">
-                  <Check size={13} /> Saved to Supabase
+                  <Check size={13} /> Saved
                 </span>
               )}
               <button
@@ -396,7 +396,7 @@ export function UserProfile() {
           <div className="mb-4 flex items-end justify-between gap-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent flex items-center gap-1.5">
-                <Sparkles size={13} /> Supabase AI Engine
+                <Sparkles size={13} /> AI Engine
               </p>
               <h2 className="mt-1 font-serif text-2xl sm:text-3xl">Curated For Your Profile</h2>
             </div>
@@ -422,10 +422,16 @@ export function UserProfile() {
                   <p className="text-[11px] text-accent font-medium leading-tight line-clamp-1">
                     ✓ {dest.matchReasons[0]}
                   </p>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/50">
-                    <span>${dest.avgDailyCost}/day</span>
-                    <Link href="/trips/new" className="font-semibold text-accent hover:underline">
-                      Plan Trip →
+                  <div className="flex flex-col gap-2 pt-2 border-t border-border/50">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground font-semibold">
+                      <span>Est. Cost</span>
+                      <span>₹{dest.avgDailyCost}/day</span>
+                    </div>
+                    <Link
+                      href={`/trips/new?city=${encodeURIComponent(`${dest.name}, ${dest.country}`)}`}
+                      className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary/90 px-2 py-2 text-[11px] font-bold text-primary-foreground transition hover:bg-primary"
+                    >
+                      <Plus size={14} /> Plan trip to {dest.name}
                     </Link>
                   </div>
                 </div>
