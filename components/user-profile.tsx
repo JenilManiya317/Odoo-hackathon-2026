@@ -1,14 +1,18 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowRight,
   CalendarDays,
+  Camera,
   Check,
   Compass,
+  Loader2,
   Edit3,
   Heart,
+  LogOut,
   MapPin,
   Plus,
   Save,
@@ -58,7 +62,7 @@ function ProfileTripCard({ trip }: { trip: ProfileTrip }) {
   return (
     <article className="group overflow-hidden rounded-2xl border border-border bg-background shadow-lg shadow-black/10 transition-all hover:-translate-y-1 hover:border-accent/60 hover:shadow-black/25">
       <div className="relative h-40 overflow-hidden sm:h-44">
-        <img src={trip.image} alt={`${trip.destination} travel scene`} className="size-full object-cover transition-transform duration-500 group-hover:scale-105" />
+        <Image src={trip.image} alt={`${trip.destination} travel scene`} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="(max-width: 768px) 100vw, 33vw" />
         <span className="absolute left-3 top-3 rounded-full bg-background/85 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-accent">{trip.kind}</span>
       </div>
       <div className="flex min-h-44 flex-col gap-3 p-4">
@@ -81,7 +85,14 @@ export function UserProfile() {
   const [editing, setEditing] = useState(false)
   const [editingPrefs, setEditingPrefs] = useState(false)
   const [name, setName] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [city, setCity] = useState('')
+  const [country, setCountry] = useState('')
   const [email, setEmail] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState('')
+  const [uploading, setUploading] = useState(false)
   const [profileTrips, setProfileTrips] = useState<ProfileTrip[]>([])
   const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_USER_PREFERENCES)
   const [favorites, setFavorites] = useState<string[]>([])
@@ -105,6 +116,12 @@ export function UserProfile() {
       setFavorites(favs)
       setSupabaseTrips(trips.map((t) => t.destination || t.name))
       setName(profile?.name || user.user_metadata?.name || user.email?.split('@')[0] || '')
+      setFirstName(user.user_metadata?.first_name || '')
+      setLastName(user.user_metadata?.last_name || '')
+      setPhone(user.user_metadata?.phone || '')
+      setCity(user.user_metadata?.city || '')
+      setCountry(user.user_metadata?.country || '')
+      setAvatarUrl(user.user_metadata?.avatar_url || '')
       setProfileTrips(trips.map((trip, index) => ({ id: trip.id, title: trip.name, destination: trip.destination, dates: `${trip.start_date ?? 'Date not set'} — ${trip.end_date ?? 'Date not set'}`, image: `https://images.unsplash.com/photo-${['1555881400-74d7acaacd8b', '1530841377377-3ff06c0ca713', '1496588152823-86ff7695e68f'][index % 3]}?auto=format&fit=crop&w=900&q=85`, kind: trip.end_date && trip.end_date < new Date().toISOString().slice(0, 10) ? 'Previous' : 'Preplanned' })))
     }
     init()
@@ -114,9 +131,46 @@ export function UserProfile() {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user || !name.trim()) return
-    const { error } = await supabase.from('profiles').upsert({ id: user.id, name: name.trim() })
-    if (!error) setSavedMsg(true)
+    await supabase.from('profiles').upsert({ id: user.id, name: name.trim() })
+    await supabase.auth.updateUser({
+      data: { name: name.trim(), first_name: firstName, last_name: lastName, phone, city, country }
+    })
+    setSavedMsg(true)
     setEditing(false)
+  }
+
+  async function uploadAvatar(event: React.ChangeEvent<HTMLInputElement>) {
+    try {
+      setUploading(true)
+      if (!event.target.files || event.target.files.length === 0) throw new Error('You must select an image to upload.')
+      const file = event.target.files[0]
+      const fileExt = file.name.split('.').pop()
+      const filePath = `profile_${Math.random()}.${fileExt}`
+      
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(`${user.id}/${filePath}`, file)
+      if (uploadError) throw uploadError
+
+      const { data } = supabase.storage.from('avatars').getPublicUrl(`${user.id}/${filePath}`)
+      
+      await supabase.auth.updateUser({
+        data: { avatar_url: data.publicUrl }
+      })
+      setAvatarUrl(data.publicUrl)
+    } catch (error: any) {
+      alert('Error uploading avatar: ' + error.message)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  async function handleLogout() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    window.location.href = '/auth'
   }
 
   // Calculate curated recommendations for profile
@@ -151,15 +205,15 @@ export function UserProfile() {
         <header className="flex h-[72px] items-center justify-between border-b border-border px-5 sm:px-8">
           <Link href="/" className="flex items-center gap-3">
             <span className="grid size-9 place-items-center rounded-xl bg-primary text-primary-foreground"><Compass size={19} /></span>
-            <span className="font-serif text-xl font-bold tracking-tight">GlobeTrotter</span>
+            <span className="hidden sm:block font-serif text-xl font-bold tracking-tight">GlobeTrotter</span>
           </Link>
-          <div className="flex items-center gap-3">
-            <Link href="/recommendations" className="flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/10 px-3.5 py-1.5 text-xs font-semibold text-accent hover:bg-accent hover:text-accent-foreground transition">
-              <Sparkles size={14} /> AI Matches
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link href="/recommendations" className="flex size-9 items-center justify-center rounded-full border border-accent/40 bg-accent/10 text-accent transition hover:bg-accent hover:text-accent-foreground sm:h-auto sm:w-auto sm:px-3.5 sm:py-1.5 sm:gap-1.5 sm:text-xs sm:font-semibold" aria-label="AI Matches">
+              <Sparkles size={14} /> <span className="hidden sm:inline">AI Matches</span>
             </Link>
-            <Link href="/profile" aria-label="Open account" className="grid size-10 place-items-center rounded-full border border-border bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground">
-              <UserRound size={18} />
-            </Link>
+            <button onClick={handleLogout} aria-label="Log Out" className="flex size-9 items-center justify-center rounded-full border border-destructive/40 bg-destructive/10 text-destructive transition hover:bg-destructive hover:text-destructive-foreground sm:h-auto sm:w-auto sm:px-3.5 sm:py-1.5 sm:gap-1.5 sm:text-xs sm:font-semibold">
+              <LogOut size={14} /> <span className="hidden sm:inline">Log Out</span>
+            </button>
           </div>
         </header>
 
@@ -167,26 +221,42 @@ export function UserProfile() {
         <section className="border-b border-border px-5 py-7 sm:px-8 sm:py-9">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
             <div className="relative mx-auto shrink-0 sm:mx-0">
-              <div className="grid size-32 place-items-center overflow-hidden rounded-full border-2 border-accent/70 bg-muted sm:size-36">
-                <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=400&q=85" alt="Alex Morgan profile" className="size-full object-cover" />
-              </div>
-              <span className="absolute bottom-1 right-1 size-4 rounded-full border-2 border-card bg-accent" />
+              <label htmlFor="avatar-upload" className="group relative block cursor-pointer">
+                <div className="grid size-32 place-items-center overflow-hidden rounded-full border-2 border-accent/70 bg-gradient-to-br from-accent/20 to-accent/5 sm:size-36 relative">
+                  {avatarUrl ? (
+                    <Image src={avatarUrl} alt="User profile" fill className="object-cover" sizes="128px" />
+                  ) : (
+                    <UserRound size={48} className="text-accent/60" />
+                  )}
+                  <div className="absolute inset-0 grid place-items-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                    {uploading ? <Loader2 className="animate-spin text-white" size={24} /> : <Camera className="text-white" size={24} />}
+                  </div>
+                </div>
+                <input id="avatar-upload" type="file" accept="image/*" className="hidden" onChange={uploadAvatar} disabled={uploading} />
+              </label>
+              <span className="absolute bottom-1 right-1 size-4 rounded-full border-2 border-card bg-accent pointer-events-none" />
             </div>
             <div className="min-w-0 flex-1 rounded-2xl border border-border bg-background p-5 sm:p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Your Profile & Supabase Persona</p>
                   {editing ? (
-                    <input
-                      value={name}
-                      onChange={(event) => setName(event.target.value)}
-                      className="mt-2 w-full rounded-lg border border-border bg-muted px-3 py-2 font-serif text-2xl outline-none focus:ring-2 focus:ring-ring"
-                      aria-label="Your name"
-                    />
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full Name" className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+                      <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone" className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+                      <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+                      <input value={country} onChange={(e) => setCountry(e.target.value)} placeholder="Country" className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+                    </div>
                   ) : (
-                    <h1 className="mt-1 font-serif text-2xl sm:text-3xl">{name}</h1>
+                    <>
+                      <h1 className="mt-1 font-serif text-2xl sm:text-3xl">{name}</h1>
+                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                        <span>{email}</span>
+                        {(city || country) && <span>• {city}{city && country && ', '}{country}</span>}
+                        {phone && <span>• {phone}</span>}
+                      </div>
+                    </>
                   )}
-                  <p className="mt-1 text-sm text-muted-foreground">{email}</p>
                 </div>
                 <button
                   onClick={() => editing ? saveProfileName() : setEditing(true)}
@@ -339,7 +409,7 @@ export function UserProfile() {
             {curatedDestinations.map((dest) => (
               <div key={dest.id} className="group relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition hover:border-accent/60 hover:shadow-md">
                 <div className="relative h-36 overflow-hidden">
-                  <img src={dest.image} alt={dest.name} className="size-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  <Image src={dest.image} alt={dest.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="(max-width: 768px) 50vw, 20vw" />
                   <span className="absolute left-2.5 top-2.5 rounded-full bg-black/60 px-2.5 py-0.5 text-xs font-bold text-accent backdrop-blur-sm">
                     {dest.matchScore}% Match
                   </span>

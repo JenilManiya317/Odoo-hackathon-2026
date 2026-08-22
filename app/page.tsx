@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import {
@@ -177,7 +178,7 @@ export default function Page() {
 
         {/* Hero Section */}
         <section className="relative mx-4 mt-4 overflow-hidden rounded-2xl bg-[#163a47] px-6 py-10 sm:mx-8 sm:px-12 sm:py-16">
-          <img src="https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1800&q=85" alt="Sunlit mountain lake surrounded by peaks" className="absolute inset-0 size-full object-cover opacity-55 mix-blend-luminosity" />
+          <Image src="https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1800&q=85" alt="Sunlit mountain lake surrounded by peaks" fill className="absolute inset-0 object-cover opacity-55 mix-blend-luminosity" priority />
           <div className="absolute inset-0 bg-gradient-to-r from-[#102c36]/95 via-[#163a47]/50 to-transparent" />
           <div className="relative max-w-xl">
             <p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-accent">
@@ -224,7 +225,7 @@ export default function Page() {
               return (
                 <div key={pick.id} className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card p-4 transition-all duration-300 hover:border-accent/60 hover:shadow-xl hover:shadow-black/20">
                   <div className="relative aspect-[1.5] w-full overflow-hidden rounded-xl bg-muted">
-                    <img src={pick.image} alt={pick.name} className="size-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    <Image src={pick.image} alt={pick.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="(max-width: 768px) 100vw, 33vw" />
                     <span className="absolute left-2.5 top-2.5 rounded-full bg-black/65 px-2.5 py-1 text-xs font-bold text-accent backdrop-blur-sm border border-accent/20">
                       {pick.matchScore}% Match
                     </span>
@@ -318,7 +319,7 @@ export default function Page() {
               const isSaved = saved.includes(destination.name)
               return (
                 <article key={destination.name} className="group relative aspect-[0.8] overflow-hidden rounded-2xl bg-muted shadow-md">
-                  <img src={destination.image} alt={`${destination.name}, ${destination.region}`} className="size-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  <Image src={destination.image} alt={`${destination.name}, ${destination.region}`} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="(max-width: 768px) 50vw, 20vw" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
                   <span className="absolute left-2.5 top-2.5 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold text-accent backdrop-blur-sm border border-accent/20">
                     {destination.matchScore}% Match
@@ -356,7 +357,7 @@ export default function Page() {
             {previousTrips.map((trip) => (
               <article key={trip.id} className="group overflow-hidden rounded-2xl border border-border bg-muted/35">
                 <div className="relative aspect-[1.8] overflow-hidden">
-                  <img src={trip.image} alt={trip.name} className="size-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  <Image src={trip.image} alt={trip.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="(max-width: 768px) 100vw, 33vw" />
                   <span className="absolute bottom-3 left-3 rounded-full bg-black/45 px-3 py-1 text-[11px] text-white backdrop-blur-sm">Saved trip</span>
                 </div>
                 <div className="p-4">
@@ -371,7 +372,7 @@ export default function Page() {
         </section>
 
         {/* Floating CTA */}
-        <Link href="/trips/new" className="fixed bottom-5 right-5 z-10 flex items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-bold text-accent-foreground shadow-lg shadow-accent/20 transition-transform hover:scale-105 sm:bottom-8 sm:right-8">
+        <Link href="/trips/new" className="fixed bottom-24 right-5 z-10 flex items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-bold text-accent-foreground shadow-lg shadow-accent/20 transition-transform hover:scale-105 sm:bottom-8 sm:right-8 md:bottom-8">
           <Plus size={17} /> Plan a trip
         </Link>
       </div>
