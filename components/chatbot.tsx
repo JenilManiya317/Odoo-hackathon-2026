@@ -307,7 +307,7 @@ export function ChatbotWidget() {
         .chatbot-fab {
           position: fixed;
           bottom: 5.5rem;
-          right: 1.25rem;
+          left: 1.25rem;
           z-index: 9999;
           width: 3.25rem;
           height: 3.25rem;
@@ -359,7 +359,7 @@ export function ChatbotWidget() {
         .chatbot-panel {
           position: fixed;
           bottom: 10rem;
-          right: 1.25rem;
+          left: 1.25rem;
           z-index: 9998;
           width: min(22rem, calc(100vw - 2rem));
           height: min(36rem, calc(100vh - 12rem));
@@ -375,7 +375,7 @@ export function ChatbotWidget() {
             0 32px 80px oklch(0 0 0 / 55%),
             0 0 0 1px oklch(0.8 0.015 210 / 8%),
             inset 0 1px 0 oklch(1 0 0 / 8%);
-          transform-origin: bottom right;
+          transform-origin: bottom left;
           transform: scale(0.85) translateY(16px);
           opacity: 0;
           pointer-events: none;
