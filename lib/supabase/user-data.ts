@@ -22,6 +22,7 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
 
 const LOCAL_PREF_KEY = 'globetrotter_user_preferences'
 const LOCAL_FAV_KEY = 'globetrotter_user_favorites'
+const LOCAL_TRIP_KEY = 'globetrotter_user_trips'
 
 export async function getUserPreferences(): Promise<UserPreferences> {
   if (typeof window === 'undefined') return DEFAULT_USER_PREFERENCES
@@ -189,7 +190,32 @@ export async function toggleUserFavorite(
   return { saved: !isSaved, list: updatedList }
 }
 
-export async function getUserTripsFromSupabase(): Promise<Array<{ id: string; name: string; destination: string; start_date?: string; end_date?: string; is_public?: boolean }>> {
+export type UserTripItem = { id: string; name: string; destination: string; start_date?: string; end_date?: string; is_public?: boolean; created_at?: string }
+
+export function getLocalTrips(): UserTripItem[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const cached = localStorage.getItem(LOCAL_TRIP_KEY)
+    if (cached) return JSON.parse(cached)
+  } catch {
+    // ignore
+  }
+  return []
+}
+
+export function saveLocalTrip(trip: UserTripItem): void {
+  if (typeof window === 'undefined') return
+  try {
+    const current = getLocalTrips()
+    const updated = [trip, ...current.filter((t) => t.id !== trip.id)]
+    localStorage.setItem(LOCAL_TRIP_KEY, JSON.stringify(updated))
+  } catch {
+    // ignore
+  }
+}
+
+export async function getUserTripsFromSupabase(): Promise<UserTripItem[]> {
+  const localTrips = getLocalTrips()
   try {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -197,24 +223,29 @@ export async function getUserTripsFromSupabase(): Promise<Array<{ id: string; na
     if (user) {
       const { data, error } = await supabase
         .from('trips')
-        .select('id, name, description, start_date, end_date, is_public')
+        .select('id, name, description, start_date, end_date, is_public, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
       if (data && !error) {
-        return data.map((t) => ({
+        const remoteTrips: UserTripItem[] = data.map((t) => ({
           id: t.id,
           name: t.name,
           destination: t.description?.replace(/^Trip to /, '') || t.name,
           start_date: t.start_date,
           end_date: t.end_date,
           is_public: t.is_public,
+          created_at: t.created_at,
         }))
+        const mergedMap = new Map<string, UserTripItem>()
+        remoteTrips.forEach((t) => mergedMap.set(t.id, t))
+        localTrips.forEach((t) => { if (!mergedMap.has(t.id)) mergedMap.set(t.id, t) })
+        return Array.from(mergedMap.values())
       }
     }
   } catch (err) {
     console.warn('Could not fetch user trips from Supabase:', err)
   }
 
-  return []
+  return localTrips
 }

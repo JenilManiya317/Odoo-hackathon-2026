@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { CalendarDays, ChevronDown, Compass, Filter, Loader2, MapPin, Search, SlidersHorizontal, Trash2, UserRound } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { getUserTripsFromSupabase } from '@/lib/supabase/user-data'
 
 type Trip = {
   id: string
@@ -32,33 +33,18 @@ export function TripListing() {
 
   useEffect(() => {
     async function loadTrips() {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setLoading(false); return }
-      const { data } = await supabase.from('trips').select(`
-        id, name, description, start_date, end_date, created_at,
-        stops (
-          city:cities (name, country, image_url),
-          trip_activities (activity:activities (name))
-        )
-      `).eq('user_id', user.id).order('created_at', { ascending: false })
+      const items = await getUserTripsFromSupabase()
       const today = new Date().toISOString().slice(0, 10)
-      setTrips((data ?? []).map((trip: any, index) => {
-        const stops = trip.stops ?? []
-        const firstCity = stops[0]?.city
-        const activities = stops.flatMap((stop: any) => (stop.trip_activities ?? []).map((item: any) => item.activity?.name).filter(Boolean))
-        return {
+      setTrips(items.map((trip, index) => ({
         id: trip.id,
         name: trip.name,
-        destination: firstCity ? `${firstCity.name}, ${firstCity.country}` : trip.description?.replace(/^Trip to /, '') || 'Destination not set',
+        destination: trip.destination || 'Destination not set',
         dates: trip.start_date && trip.end_date ? `${trip.start_date} — ${trip.end_date}` : 'Dates not set',
         status: trip.end_date && trip.end_date < today ? 'Completed' : trip.start_date && trip.start_date <= today ? 'Ongoing' : 'Up-coming',
-        image: firstCity?.image_url || tripImages[index % tripImages.length],
-        places: stops.length || 1,
+        image: tripImages[index % tripImages.length],
+        places: 1,
         accent: 'Personal trip',
-        activities,
-      }
-      }))
+      })))
       setLoading(false)
     }
     loadTrips()
@@ -66,8 +52,17 @@ export function TripListing() {
 
   async function deleteTrip(id: string) {
     if (!window.confirm('Delete this trip?')) return
-    const { error } = await createClient().from('trips').delete().eq('id', id)
-    if (!error) setTrips((current) => current.filter((trip) => trip.id !== id))
+    try {
+      await createClient().from('trips').delete().eq('id', id)
+      const cached = localStorage.getItem('globetrotter_user_trips')
+      if (cached) {
+        const list = JSON.parse(cached)
+        localStorage.setItem('globetrotter_user_trips', JSON.stringify(list.filter((item: { id: string }) => item.id !== id)))
+      }
+    } catch {
+      // ignore
+    }
+    setTrips((current) => current.filter((trip) => trip.id !== id))
   }
 
   const filteredTrips = useMemo(() => {

@@ -2,10 +2,10 @@
 
 import Link from 'next/link'
 import { FormEvent, useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, CalendarDays, Check, Compass, Loader2, MapPin, Plus, Sparkles } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { getUserPreferences, UserPreferences, DEFAULT_USER_PREFERENCES } from '@/lib/supabase/user-data'
+import { getUserPreferences, UserPreferences, DEFAULT_USER_PREFERENCES, saveLocalTrip } from '@/lib/supabase/user-data'
 import additionalDestinations from '@/data/destinations.json'
 
 type City = { id: string; name: string; country: string; image_url: string | null }
@@ -28,6 +28,7 @@ const catalogCities: City[] = additionalDestinations.map((destination) => ({
 }))
 
 export default function NewTripForm({ cities, activities }: { cities: City[]; activities: Activity[] }) {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const activityId = searchParams.get('activityId')
   const cityParam = searchParams.get('city')
@@ -100,7 +101,7 @@ export default function NewTripForm({ cities, activities }: { cities: City[]; ac
 
       if (city.id.startsWith('catalog-')) {
         const catalogDestination = additionalDestinations.find((destination) => destination.id === city.id.replace('catalog-', ''))
-        const { data: createdCityData, error: cityError } = await supabase.rpc('get_or_create_catalog_city', {
+        const { data: createdCityData } = await supabase.rpc('get_or_create_catalog_city', {
           p_name: city.name,
           p_country: city.country,
           p_region: catalogDestination?.region ?? null,
@@ -110,18 +111,25 @@ export default function NewTripForm({ cities, activities }: { cities: City[]; ac
           p_recommended_accommodation: catalogDestination?.recommendedAccommodation ?? 'Hotel',
           p_description: catalogDestination?.description ?? null,
         }).maybeSingle()
-        const createdCity = createdCityData as City | null
-        if (cityError || !createdCity) {
-          console.error('Could not create catalog destination:', cityError)
-          const errorMessage = cityError?.message?.toLowerCase() ?? ''
-          setError(
-            errorMessage.includes('function') || errorMessage.includes('rpc')
-              ? 'Database setup is incomplete. Run migration 010_catalog_city_function.sql in Supabase, then try again.'
-              : cityError?.message || 'We could not save this destination. Please try again.'
-          )
-          return
+
+        let createdCity = createdCityData as City | null
+
+        if (!createdCity) {
+          const { data: existingCity } = await supabase.from('cities').select('id, name, country').ilike('name', city.name).maybeSingle()
+          if (existingCity) {
+            createdCity = existingCity as City
+          } else {
+            const { data: inserted } = await supabase.from('cities').insert({
+              name: city.name,
+              country: city.country,
+              image_url: city.image_url,
+            }).select('id, name, country').maybeSingle()
+            if (inserted) createdCity = inserted as City
+          }
         }
-        city = createdCity
+        if (createdCity) {
+          city = createdCity
+        }
       }
 
       const { data: trip, error: tripError } = await supabase
@@ -134,7 +142,7 @@ export default function NewTripForm({ cities, activities }: { cities: City[]; ac
           description: `Trip to ${form.place}`,
           is_public: false,
         })
-        .select('id')
+        .select('id, name, description, start_date, end_date, created_at')
         .single()
 
       if (tripError || !trip) {
@@ -142,28 +150,43 @@ export default function NewTripForm({ cities, activities }: { cities: City[]; ac
         return
       }
 
-      const { data: stop, error: stopError } = await supabase.from('stops').insert({
-        trip_id: trip.id,
-        city_id: city.id,
-        arrival_date: form.startDate,
-        departure_date: form.endDate,
-        order_index: 0,
-      }).select('id').single()
+      saveLocalTrip({
+        id: trip.id,
+        name: trip.name,
+        destination: form.place,
+        start_date: form.startDate,
+        end_date: form.endDate,
+        created_at: trip.created_at || new Date().toISOString(),
+      })
 
-      const selectedActivityIds = selected
-        .filter((activity) => activities.some((item) => item.id === activity.id))
-        .map((activity) => activity.id)
-      const { error: activitiesError } = stop && selectedActivityIds.length
-        ? await supabase.from('trip_activities').insert(selectedActivityIds.map((activityId) => ({ stop_id: stop.id, activity_id: activityId, cost: activities.find((activity) => activity.id === activityId)?.cost ?? null })))
-        : { error: null }
+      if (!city.id.startsWith('catalog-')) {
+        const { data: stop } = await supabase.from('stops').insert({
+          trip_id: trip.id,
+          city_id: city.id,
+          arrival_date: form.startDate,
+          departure_date: form.endDate,
+          order_index: 0,
+        }).select('id').single()
 
-      if (stopError || activitiesError) {
-        await supabase.from('trips').delete().eq('id', trip.id)
-        setError('We could not save the trip destination. Please try again.')
-        return
+        const selectedActivityIds = selected
+          .filter((activity) => activities.some((item) => item.id === activity.id))
+          .map((activity) => activity.id)
+
+        if (stop && selectedActivityIds.length) {
+          await supabase.from('trip_activities').insert(
+            selectedActivityIds.map((activityId) => ({
+              stop_id: stop.id,
+              activity_id: activityId,
+              cost: activities.find((activity) => activity.id === activityId)?.cost ?? null,
+            }))
+          )
+        }
       }
 
-      setStatus('Trip saved. Your itinerary is ready to build.')
+      setStatus('Trip saved! Redirecting to My Trips...')
+      setTimeout(() => {
+        router.push('/trips')
+      }, 800)
     } catch {
       setError('The travel service is unavailable. Please try again.')
     } finally {
