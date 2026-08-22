@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import {
   Bot,
   ChevronDown,
@@ -41,6 +42,7 @@ const GREETING_MESSAGES = [
 
 // ── Floating Chat Widget ─────────────────────────────────────────────────────
 export function ChatbotWidget() {
+  const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
@@ -155,6 +157,8 @@ export function ChatbotWidget() {
       i % 2 === 1 ? <strong key={i}>{part}</strong> : part
     )
   }
+
+  if (pathname === '/auth') return null
 
   return (
     <>
@@ -680,6 +684,8 @@ export function ChatbotInline() {
     text.split(/\*\*(.*?)\*\*/g).map((p, i) => i % 2 === 1 ? <strong key={i}>{p}</strong> : p)
 
   const formatTime = (d: Date) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+  if (pathname === '/auth') return null
 
   return (
     <div className="chatbot-inline">

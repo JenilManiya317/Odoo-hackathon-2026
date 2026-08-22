@@ -8,7 +8,8 @@ import { createClient } from '@/lib/supabase/client'
 export default function AuthPage() {
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [showPassword, setShowPassword] = useState(false)
-  const [form, setForm] = useState({ username: '', password: '', firstName: '', lastName: '', email: '', phone: '', city: '', country: '' })
+  const [form, setForm] = useState({ username: '', email: '', password: '', firstName: '', lastName: '', phone: '', city: '', country: '' })
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -26,11 +27,41 @@ export default function AuthPage() {
     event.preventDefault()
     setLoading(true)
     setMessage('')
+    setErrors({})
+
+    const newErrors: Record<string, string> = {}
+    
+    // Basic frontend validation
+    const currentEmail = mode === 'login' ? form.username : form.email
+    if (!currentEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(currentEmail)) {
+      newErrors[mode === 'login' ? 'username' : 'email'] = 'Please enter a valid email address.'
+    }
+
+    if (mode === 'register') {
+      if (!form.firstName.trim()) newErrors.firstName = 'First name is required.'
+      if (!form.lastName.trim()) newErrors.lastName = 'Last name is required.'
+      
+      const pass = form.password
+      if (pass.length < 8) newErrors.password = 'Password must be at least 8 characters.'
+      else if (!/[A-Z]/.test(pass)) newErrors.password = 'Password must contain at least 1 uppercase letter.'
+      else if (!/[a-z]/.test(pass)) newErrors.password = 'Password must contain at least 1 lowercase letter.'
+      else if (!/[0-9]/.test(pass)) newErrors.password = 'Password must contain at least 1 number.'
+      else if (!/[^A-Za-z0-9]/.test(pass)) newErrors.password = 'Password must contain at least 1 special character.'
+    } else {
+      if (!form.password) newErrors.password = 'Password is required.'
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      setLoading(false)
+      return
+    }
+
     const supabase = createClient()
     try {
       if (mode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ email: form.username, password: form.password })
-        if (error) setMessage('Invalid email or password.')
+        if (error) setMessage(error.message)
         else window.location.href = '/'
       } else {
         const { data, error } = await supabase.auth.signUp({
@@ -48,7 +79,7 @@ export default function AuthPage() {
             },
           },
         })
-        if (error) setMessage('We could not create your account. Check your details and try again.')
+        if (error) setMessage(error.message)
         else if (data.session) window.location.href = '/'
         else setMessage('Registration received. Check your email to confirm your account.')
       }
@@ -62,7 +93,8 @@ export default function AuthPage() {
   const field = (label: string, key: keyof typeof form, type = 'text') => (
     <label className="flex flex-col gap-2 text-xs font-medium text-muted-foreground">
       <span>{label}</span>
-      <input required={mode === 'login' || ['firstName', 'lastName', 'email'].includes(key)} type={type} value={form[key]} onChange={(event) => update(key, event.target.value)} placeholder={label} className="h-11 rounded-xl border border-border bg-background/70 px-3.5 text-sm text-foreground outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20" />
+      <input required={mode === 'login' || ['firstName', 'lastName', 'email'].includes(key)} type={type} value={form[key]} onChange={(event) => update(key, event.target.value)} placeholder={label} className={`h-11 rounded-xl border bg-background/70 px-3.5 text-sm text-foreground outline-none transition focus:ring-2 ${errors[key] ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : 'border-border focus:border-accent focus:ring-accent/20'}`} />
+      {errors[key] && <span className="text-destructive font-semibold">{errors[key]}</span>}
     </label>
   )
 
@@ -70,11 +102,12 @@ export default function AuthPage() {
     <label className="flex flex-col gap-2 text-xs font-medium text-muted-foreground">
       <span>Password</span>
       <span className="relative">
-        <input required type={showPassword ? 'text' : 'password'} value={form.password} onChange={(event) => update('password', event.target.value)} placeholder="Password" className="h-11 w-full rounded-xl border border-border bg-background/70 px-3.5 pr-11 text-sm text-foreground outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20" />
+        <input required type={showPassword ? 'text' : 'password'} value={form.password} onChange={(event) => update('password', event.target.value)} placeholder="Password" className={`h-11 w-full rounded-xl border bg-background/70 px-3.5 pr-11 text-sm text-foreground outline-none transition focus:ring-2 ${errors.password ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : 'border-border focus:border-accent focus:ring-accent/20'}`} />
         <button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition hover:text-foreground">
           {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
         </button>
       </span>
+      {errors.password && <span className="text-destructive font-semibold">{errors.password}</span>}
     </label>
   )
 
@@ -89,7 +122,7 @@ export default function AuthPage() {
             <div className="mb-6"><h2 className="font-serif text-3xl">{mode === 'login' ? 'Welcome back.' : 'Join the journey.'}</h2><p className="mt-2 text-sm text-muted-foreground">{mode === 'login' ? 'Pick up where your next adventure begins.' : 'Tell us a little about yourself.'}</p></div>
             <form onSubmit={submit} className="space-y-4">
               {mode === 'login' ? <>{field('Email address', 'username', 'email')}{passwordField}</> : <><div className="grid gap-4 sm:grid-cols-2">{field('First name', 'firstName')}{field('Last name', 'lastName')}{field('Email address', 'email', 'email')}{field('Phone number', 'phone', 'tel')}{field('City', 'city')}{field('Country', 'country')}</div>{passwordField}</>}
-              {message && <p role="status" className="rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground">{message}</p>}
+              {message && <p role="status" className={`rounded-xl px-3 py-2 text-sm font-medium ${message.includes('Check your email') ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>{message}</p>}
               <button disabled={loading} className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-60">{loading && <Loader2 size={16} className="animate-spin" />}{mode === 'login' ? 'Log in' : 'Create account'}</button>
             </form>
           </section>

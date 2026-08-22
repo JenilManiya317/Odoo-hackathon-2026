@@ -6,6 +6,7 @@ import { Bot, Compass, Heart, Home, UserRound } from 'lucide-react'
 
 export function MobileNavbar() {
   const pathname = usePathname()
+  if (pathname === '/auth') return null
 
   const links = [
     { name: 'Home', href: '/', icon: Home },
