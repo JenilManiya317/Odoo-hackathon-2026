@@ -22,23 +22,40 @@ export function CommunityFeed() {
   const [userName, setUserName] = useState('Traveler')
   const [error, setError] = useState('')
 
+  function describeDatabaseError(message: string) {
+    return message.includes('community_') || message.includes('relation')
+      ? 'Community storage is not configured. Apply supabase/migrations/010_community.sql in Supabase.'
+      : 'We could not complete that action. Please try again.'
+  }
+
   useEffect(() => {
     const supabase = createClient()
+    let chatChannel: ReturnType<typeof supabase.channel> | undefined
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
       setUserId(user?.id ?? null)
       if (user) setUserName(user.user_metadata?.name || user.email?.split('@')[0] || 'Traveler')
-      const [{ data: rows, error: postsError }, { data: likes }] = await Promise.all([
+      const [{ data: rows, error: postsError }, { data: likes }, { data: allLikes }] = await Promise.all([
         supabase.from('community_posts').select('id, author_id, author_name, title, body, location, tag, created_at').order('created_at', { ascending: false }),
         user ? supabase.from('community_likes').select('post_id').eq('user_id', user.id) : Promise.resolve({ data: [] }),
+        supabase.from('community_likes').select('post_id'),
       ])
-      if (postsError) setError('Community posts are unavailable. Apply migration 010 in Supabase.')
+      if (postsError) setError(describeDatabaseError(postsError.message))
       const likedIds = new Set((likes ?? []).map((like) => like.post_id))
-      setPosts((rows ?? []).map((post, index) => ({ id: post.id, authorId: post.author_id, name: post.author_name, initials: post.author_name.slice(0, 2).toUpperCase(), location: post.location, title: post.title, body: post.body, tag: post.tag, likes: 0, liked: likedIds.has(post.id) })))
+      const likeCounts = new Map<string, number>()
+      ;(allLikes ?? []).forEach((like) => likeCounts.set(like.post_id, (likeCounts.get(like.post_id) ?? 0) + 1))
+      setPosts((rows ?? []).map((post) => ({ id: post.id, authorId: post.author_id, name: post.author_name, initials: post.author_name.slice(0, 2).toUpperCase(), location: post.location, title: post.title, body: post.body, tag: post.tag, likes: likeCounts.get(post.id) ?? 0, liked: likedIds.has(post.id) })))
       const { data: chatRows } = user ? await supabase.from('community_messages').select('id, author_name, body, created_at').order('created_at', { ascending: true }).limit(100) : { data: [] }
       setMessages((chatRows ?? []).map((message) => ({ id: message.id, authorName: message.author_name, body: message.body, createdAt: message.created_at })))
+      if (user) {
+        chatChannel = supabase.channel('community-chat').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_messages' }, (payload) => {
+          const message = payload.new as { id: string; author_name: string; body: string; created_at: string }
+          setMessages((current) => current.some((item) => item.id === message.id) ? current : [...current, { id: message.id, authorName: message.author_name, body: message.body, createdAt: message.created_at }])
+        }).subscribe()
+      }
     }
     load()
+    return () => { if (chatChannel) supabase.removeChannel(chatChannel) }
   }, [])
 
   const visiblePosts = useMemo(() => posts.filter((post) => filter === 'All' || post.tag === filter).filter((post) => `${post.name} ${post.location} ${post.title} ${post.body}`.toLowerCase().includes(query.toLowerCase())).sort((a, b) => sortPopular ? b.likes - a.likes : 0), [filter, posts, query, sortPopular])
@@ -48,7 +65,7 @@ export function CommunityFeed() {
     if (!userId) return setError('Please log in to share a story.')
     if (!postTitle.trim() || !postBody.trim()) return setError('Add a title and story before publishing.')
     const { data, error: postError } = await createClient().from('community_posts').insert({ author_id: userId, author_name: userName, title: postTitle.trim(), body: postBody.trim(), location: 'My next destination', tag: 'Travel story' }).select('id, author_id, author_name, title, body, location, tag').single()
-    if (postError || !data) return setError('We could not publish your story.')
+    if (postError || !data) return setError(postError ? describeDatabaseError(postError.message) : 'We could not publish your story.')
     setPosts((current) => [{ id: data.id, authorId: data.author_id, name: data.author_name, initials: data.author_name.slice(0, 2).toUpperCase(), location: data.location, title: data.title, body: data.body, tag: data.tag, likes: 0, liked: false }, ...current])
     setPostTitle(''); setPostBody(''); setError('')
   }
@@ -58,7 +75,7 @@ export function CommunityFeed() {
     const supabase = createClient()
     const nextLiked = !post.liked
     const result = nextLiked ? await supabase.from('community_likes').insert({ post_id: post.id, user_id: userId }) : await supabase.from('community_likes').delete().match({ post_id: post.id, user_id: userId })
-    if (result.error) return setError('We could not update that like.')
+    if (result.error) return setError(describeDatabaseError(result.error.message))
     setPosts((current) => current.map((item) => item.id === post.id ? { ...item, liked: nextLiked, likes: item.likes + (nextLiked ? 1 : -1) } : item))
   }
 
@@ -67,7 +84,7 @@ export function CommunityFeed() {
     if (!userId) return setError('Please log in to join the chat.')
     if (!chatBody.trim()) return
     const { data, error: chatError } = await createClient().from('community_messages').insert({ user_id: userId, author_name: userName, body: chatBody.trim() }).select('id, author_name, body, created_at').single()
-    if (chatError || !data) return setError('We could not send your message.')
+    if (chatError || !data) return setError(chatError ? describeDatabaseError(chatError.message) : 'We could not send your message.')
     setMessages((current) => [...current, { id: data.id, authorName: data.author_name, body: data.body, createdAt: data.created_at }]); setChatBody('')
   }
 
