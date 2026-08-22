@@ -24,21 +24,32 @@ export function CommunityFeed() {
 
   useEffect(() => {
     const supabase = createClient()
+    let chatChannel: ReturnType<typeof supabase.channel> | undefined
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
       setUserId(user?.id ?? null)
       if (user) setUserName(user.user_metadata?.name || user.email?.split('@')[0] || 'Traveler')
-      const [{ data: rows, error: postsError }, { data: likes }] = await Promise.all([
+      const [{ data: rows, error: postsError }, { data: likes }, { data: allLikes }] = await Promise.all([
         supabase.from('community_posts').select('id, author_id, author_name, title, body, location, tag, created_at').order('created_at', { ascending: false }),
         user ? supabase.from('community_likes').select('post_id').eq('user_id', user.id) : Promise.resolve({ data: [] }),
+        supabase.from('community_likes').select('post_id'),
       ])
       if (postsError) setError('Community posts are unavailable. Apply migration 010 in Supabase.')
       const likedIds = new Set((likes ?? []).map((like) => like.post_id))
-      setPosts((rows ?? []).map((post, index) => ({ id: post.id, authorId: post.author_id, name: post.author_name, initials: post.author_name.slice(0, 2).toUpperCase(), location: post.location, title: post.title, body: post.body, tag: post.tag, likes: 0, liked: likedIds.has(post.id) })))
+      const likeCounts = new Map<string, number>()
+      ;(allLikes ?? []).forEach((like) => likeCounts.set(like.post_id, (likeCounts.get(like.post_id) ?? 0) + 1))
+      setPosts((rows ?? []).map((post) => ({ id: post.id, authorId: post.author_id, name: post.author_name, initials: post.author_name.slice(0, 2).toUpperCase(), location: post.location, title: post.title, body: post.body, tag: post.tag, likes: likeCounts.get(post.id) ?? 0, liked: likedIds.has(post.id) })))
       const { data: chatRows } = user ? await supabase.from('community_messages').select('id, author_name, body, created_at').order('created_at', { ascending: true }).limit(100) : { data: [] }
       setMessages((chatRows ?? []).map((message) => ({ id: message.id, authorName: message.author_name, body: message.body, createdAt: message.created_at })))
+      if (user) {
+        chatChannel = supabase.channel('community-chat').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_messages' }, (payload) => {
+          const message = payload.new as { id: string; author_name: string; body: string; created_at: string }
+          setMessages((current) => current.some((item) => item.id === message.id) ? current : [...current, { id: message.id, authorName: message.author_name, body: message.body, createdAt: message.created_at }])
+        }).subscribe()
+      }
     }
     load()
+    return () => { if (chatChannel) supabase.removeChannel(chatChannel) }
   }, [])
 
   const visiblePosts = useMemo(() => posts.filter((post) => filter === 'All' || post.tag === filter).filter((post) => `${post.name} ${post.location} ${post.title} ${post.body}`.toLowerCase().includes(query.toLowerCase())).sort((a, b) => sortPopular ? b.likes - a.likes : 0), [filter, posts, query, sortPopular])
