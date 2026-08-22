@@ -70,7 +70,7 @@ export default function ItineraryBuilder() {
           <Link href="/auth" aria-label="Open profile" className="grid size-10 place-items-center rounded-full border border-border text-muted-foreground transition hover:bg-muted hover:text-foreground"><CircleUserRound size={22} /></Link>
         </header>
         <div className="border-b border-border px-5 py-5 sm:px-10">
-          <Link href="/trips/new" className="mb-3 inline-flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"><ArrowLeft size={16} /> Back to trip details</Link>
+          <Link href={tripId ? `/trips/new?tripId=${tripId}` : '/trips'} className="mb-3 inline-flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"><ArrowLeft size={16} /> Back to trip details</Link>
           <div className="flex items-end justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Screen 5 · Build itinerary</p><h1 className="mt-2 font-serif text-3xl sm:text-4xl">Build your itinerary</h1><p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">Shape your trip into simple sections for travel, stays, and activities.</p></div><button onClick={saveDraft} className="hidden shrink-0 items-center gap-2 rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm font-semibold transition hover:bg-muted sm:inline-flex"><Save size={16} /> {saved ? 'Saved' : 'Save draft'}</button></div>
         </div>
         <section className="space-y-3 px-5 py-5 sm:px-10 sm:py-8">

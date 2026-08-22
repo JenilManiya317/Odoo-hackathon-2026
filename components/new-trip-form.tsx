@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { ArrowLeft, CalendarDays, Check, Compass, Loader2, MapPin, Plus, Sparkles } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getUserPreferences, UserPreferences, DEFAULT_USER_PREFERENCES } from '@/lib/supabase/user-data'
@@ -19,6 +20,9 @@ const fallbackImages = [
 ]
 
 export default function NewTripForm({ cities, activities }: { cities: City[]; activities: Activity[] }) {
+  const searchParams = useSearchParams()
+  const activityId = searchParams.get('activityId')
+  const cityParam = searchParams.get('city')
   const [form, setForm] = useState({ name: '', startDate: '', place: '', endDate: '' })
   const [selected, setSelected] = useState<Activity[]>([])
   const [error, setError] = useState('')
@@ -27,12 +31,23 @@ export default function NewTripForm({ cities, activities }: { cities: City[]; ac
   const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_USER_PREFERENCES)
 
   useEffect(() => {
+    if (!cityParam || !cities.some((city) => `${city.name}, ${city.country}` === cityParam)) return
+    setForm((current) => ({ ...current, place: cityParam }))
+  }, [cities, cityParam])
+
+  useEffect(() => {
     async function load() {
       const prefs = await getUserPreferences()
       setPreferences(prefs)
     }
     load()
   }, [])
+
+  useEffect(() => {
+    if (!activityId) return
+    const activity = activities.find((item) => item.id === activityId)
+    if (activity) setSelected((current) => current.some((item) => item.id === activity.id) ? current : [...current, activity])
+  }, [activities, activityId])
 
   const suggestions = useMemo(() => {
     if (activities.length) return activities
