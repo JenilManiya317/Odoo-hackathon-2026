@@ -16,6 +16,7 @@ export const viewport: Viewport = {
 }
 
 import { MobileNavbar } from '@/components/mobile-navbar'
+import { ChatbotWidget } from '@/components/chatbot'
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className="antialiased pb-16 md:pb-0">
         {children}
         <MobileNavbar />
+        <ChatbotWidget />
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

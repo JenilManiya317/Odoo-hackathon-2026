@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Compass, Heart, Home, UserRound } from 'lucide-react'
+import { Bot, Compass, Heart, Home, UserRound } from 'lucide-react'
 
 export function MobileNavbar() {
   const pathname = usePathname()
@@ -10,6 +10,7 @@ export function MobileNavbar() {
   const links = [
     { name: 'Home', href: '/', icon: Home },
     { name: 'Explore', href: '/recommendations', icon: Compass },
+    { name: 'AI Chat', href: '/chatbot', icon: Bot },
     { name: 'Trips', href: '/trips', icon: Heart },
     { name: 'Profile', href: '/profile', icon: UserRound },
   ]
