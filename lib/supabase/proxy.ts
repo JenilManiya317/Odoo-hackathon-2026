@@ -16,21 +16,16 @@ export async function updateSession(request: NextRequest) {
     { cookies: { getAll: () => request.cookies.getAll(), setAll: (cookiesToSet) => { cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value)); response = NextResponse.next({ request }); cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options)) } } },
   )
   const { data: { user } } = await supabase.auth.getUser()
-
   const isAuthRoute = request.nextUrl.pathname.startsWith('/auth')
-  const isPublicRoute = isAuthRoute || request.nextUrl.pathname === '/manifest.json'
+  const protectedPath = request.nextUrl.pathname === '/'
+    || ['/profile', '/calendar', '/trips', '/activities', '/recommendations', '/admin'].some((path) => request.nextUrl.pathname.startsWith(path))
 
-  if (!user && !isPublicRoute) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/auth'
-    return NextResponse.redirect(url)
+  if (protectedPath && !user) {
+    return NextResponse.redirect(new URL('/auth', request.url))
   }
 
   if (user && isAuthRoute) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/'
-    return NextResponse.redirect(url)
+    return NextResponse.redirect(new URL('/', request.url))
   }
-
   return response
 }
