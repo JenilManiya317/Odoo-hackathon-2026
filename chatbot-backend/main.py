@@ -18,7 +18,42 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from train_data import TRAVEL_QA_PAIRS
 import random
+import json
+from pathlib import Path
 from datetime import datetime
+
+
+def load_destination_training_pairs() -> list[tuple[str, str]]:
+    """Create searchable destination answers from the shared website catalog."""
+    catalog_path = Path(__file__).resolve().parent.parent / 'data' / 'destinations.json'
+    try:
+        destinations = json.loads(catalog_path.read_text(encoding='utf-8'))
+    except (OSError, json.JSONDecodeError) as error:
+        print(f"[WARN] Could not load shared destination catalog: {error}")
+        return []
+
+    pairs = []
+    for destination in destinations:
+        name = destination['name']
+        country = destination['country']
+        answer = (
+            f"{name} 🌍 is a {destination['type'].lower()} escape in {country}. "
+            f"{destination['description']} Best season: {destination['bestSeason']}. "
+            f"Plan about {destination['suggestedDurationDays']} days at roughly "
+            f"${destination['avgDailyCost']}/day. A highlight is {destination['highlightActivity']}."
+        )
+        pairs.extend([
+            (name, answer),
+            (f"tell me about {name}", answer),
+            (f"what can I do in {name}", answer),
+            (f"is {name} good for travel", answer),
+            (f"{name} {country}", answer),
+        ])
+    print(f"[OK] Loaded {len(destinations)} shared destinations ({len(pairs)} chatbot queries)")
+    return pairs
+
+
+TRAVEL_QA_PAIRS = TRAVEL_QA_PAIRS + load_destination_training_pairs()
 
 # ── Download NLTK data ─────────────────────────────────────────────────────────
 try:
@@ -71,9 +106,9 @@ class TravelNLPModel:
         tokens = [
             self.lemmatizer.lemmatize(t)
             for t in tokens
-            if t not in self.stop_words or len(t) <= 3
+            if t not in self.stop_words and len(t) > 1  # Fixed: was OR (bug), now AND
         ]
-        return ' '.join(tokens)
+        return ' '.join(tokens) if tokens else text.strip()
 
     def _train(self):
         """Fit TF-IDF vectorizer on training data."""
@@ -86,12 +121,15 @@ class TravelNLPModel:
         print(f"[OK] NLP Model trained on {len(self.questions)} Q&A pairs")
         print(f"     Vocabulary size: {len(self.vectorizer.vocabulary_)}")
 
-    def predict(self, user_input: str, threshold: float = 0.10) -> tuple[str, float]:
+    def predict(self, user_input: str, threshold: float = 0.05) -> tuple[str, float]:
         """
         Find the best matching answer using cosine similarity.
         Returns (answer, confidence_score).
+        Uses both processed and raw-keyword matching for robustness.
         """
         processed = self._preprocess(user_input)
+        raw_lower = user_input.lower().strip()
+
         if not processed.strip():
             return self._fallback_response(user_input), 0.0
 
@@ -100,8 +138,23 @@ class TravelNLPModel:
 
         # Compute cosine similarity across all training questions
         similarities = cosine_similarity(query_vec, self.tfidf_matrix).flatten()
-        best_idx = np.argmax(similarities)
-        best_score = float(similarities[best_idx])
+
+        # Also try matching against raw (unprocessed) input in case preprocessing hurt
+        raw_processed = re.sub(r'[^\w\s]', ' ', raw_lower)
+        raw_vec = self.vectorizer.transform([raw_processed])
+        raw_similarities = cosine_similarity(raw_vec, self.tfidf_matrix).flatten()
+
+        # Take element-wise max of both similarity vectors
+        combined = np.maximum(similarities, raw_similarities)
+
+        # Keyword boost: if training question keywords appear verbatim in raw input, boost those
+        for i, q in enumerate(self.questions):
+            for word in q.split():
+                if len(word) > 3 and word in raw_lower:
+                    combined[i] = min(1.0, combined[i] + 0.15)
+
+        best_idx = int(np.argmax(combined))
+        best_score = float(combined[best_idx])
 
         if best_score < threshold:
             return self._fallback_response(user_input), best_score

@@ -1,4 +1,5 @@
 import { UserPreferences, DEFAULT_USER_PREFERENCES } from './supabase/user-data'
+import additionalDestinations from '@/data/destinations.json'
 
 export type DestinationRecommendation = {
   id: string
@@ -206,6 +207,7 @@ export const DESTINATIONS_CATALOG: Omit<DestinationRecommendation, 'matchScore' 
     description: 'Alpine paradise nestled between two crystal lakes with panoramic views of the Eiger, Mönch, and Jungfrau.',
     tags: ['Alps', 'Paragliding', 'Scenic Trains', 'Snow Peaks'],
   },
+  ...(additionalDestinations as unknown as Omit<DestinationRecommendation, 'matchScore' | 'matchReasons'>[]),
 ]
 
 export const ACTIVITIES_CATALOG: Omit<ActivityRecommendation, 'matchScore' | 'matchReason'>[] = [
