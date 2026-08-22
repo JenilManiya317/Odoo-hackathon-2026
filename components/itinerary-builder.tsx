@@ -23,14 +23,14 @@ export default function ItineraryBuilder() {
       if (!tripId) { setError('Choose a trip before editing its itinerary.'); return }
       const supabase = createClient()
       const [{ data: stops, error: stopsError }, { data: cityRows }] = await Promise.all([
-        supabase.from('stops').select('id, city_id, arrival_date, departure_date, cities(name, country)').eq('trip_id', tripId).order('order_index'),
+        supabase.from('stops').select('id, city_id, arrival_date, departure_date, description, budget, cities(name, country)').eq('trip_id', tripId).order('order_index'),
         supabase.from('cities').select('id, name, country').order('name'),
       ])
       if (stopsError) { setError('We could not load this itinerary.'); return }
       setCities(cityRows ?? [])
       setSections((stops ?? []).map((stop, index) => {
         const city = Array.isArray(stop.cities) ? stop.cities[0] : stop.cities
-        return { id: stop.id, title: city ? `${city.name}, ${city.country}` : `Stop ${index + 1}`, description: city ? `Plan your time in ${city.name}.` : 'Add details for this stop.', dateRange: `${stop.arrival_date ?? ''} to ${stop.departure_date ?? ''}`, budget: 'Budget not set', open: true, cityId: stop.city_id }
+        return { id: stop.id, title: city ? `${city.name}, ${city.country}` : `Stop ${index + 1}`, description: stop.description ?? (city ? `Plan your time in ${city.name}.` : 'Add details for this stop.'), dateRange: `${stop.arrival_date ?? ''} to ${stop.departure_date ?? ''}`, budget: stop.budget ?? 'Budget not set', open: true, cityId: stop.city_id }
       }))
     }
     load()
@@ -53,7 +53,7 @@ export default function ItineraryBuilder() {
     const supabase = createClient()
     const results = await Promise.all(sections.map((section, index) => {
       const [arrivalDate, departureDate] = section.dateRange.split(' to ').map((date) => date.trim())
-      const values = { trip_id: tripId, city_id: section.cityId, arrival_date: arrivalDate || null, departure_date: departureDate || null, order_index: index }
+      const values = { trip_id: tripId, city_id: section.cityId, arrival_date: arrivalDate || null, departure_date: departureDate || null, description: section.description, budget: section.budget, order_index: index }
       return section.id.startsWith('new-')
         ? supabase.from('stops').insert(values)
         : supabase.from('stops').update(values).eq('id', section.id)
@@ -70,7 +70,7 @@ export default function ItineraryBuilder() {
           <Link href="/auth" aria-label="Open profile" className="grid size-10 place-items-center rounded-full border border-border text-muted-foreground transition hover:bg-muted hover:text-foreground"><CircleUserRound size={22} /></Link>
         </header>
         <div className="border-b border-border px-5 py-5 sm:px-10">
-          <Link href="/trips/new" className="mb-3 inline-flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"><ArrowLeft size={16} /> Back to trip details</Link>
+          <Link href={tripId ? `/trips/new?tripId=${tripId}` : '/trips'} className="mb-3 inline-flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"><ArrowLeft size={16} /> Back to trip details</Link>
           <div className="flex items-end justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Screen 5 · Build itinerary</p><h1 className="mt-2 font-serif text-3xl sm:text-4xl">Build your itinerary</h1><p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">Shape your trip into simple sections for travel, stays, and activities.</p></div><button onClick={saveDraft} className="hidden shrink-0 items-center gap-2 rounded-xl border border-border bg-muted/50 px-4 py-2.5 text-sm font-semibold transition hover:bg-muted sm:inline-flex"><Save size={16} /> {saved ? 'Saved' : 'Save draft'}</button></div>
         </div>
         <section className="space-y-3 px-5 py-5 sm:px-10 sm:py-8">

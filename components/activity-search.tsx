@@ -18,8 +18,10 @@ import {
   UserPreferences,
   DEFAULT_USER_PREFERENCES
 } from '@/lib/supabase/user-data'
+import { createClient } from '@/lib/supabase/client'
 
 type Activity = {
+  id: string
   title: string
   city: string
   description: string
@@ -29,13 +31,13 @@ type Activity = {
   image: string
 }
 
-const activities: Activity[] = [
-  { title: 'Paragliding over the valley', city: 'Interlaken, Switzerland', description: 'Soar above alpine lakes and snow-capped peaks with a certified local pilot.', category: 'Adventure', price: 'From $145', priceNum: 145, image: 'https://images.unsplash.com/photo-1521336575822-6da63fb45455?auto=format&fit=crop&w=900&q=85' },
-  { title: 'Kyoto tea ceremony', city: 'Kyoto, Japan', description: 'Learn the rituals and quiet art of matcha in a traditional tea house.', category: 'Culture', price: 'From $52', priceNum: 52, image: 'https://images.unsplash.com/photo-1545569341-9eb8b30979d9?auto=format&fit=crop&w=900&q=85' },
-  { title: 'Sunset sailing cruise', city: 'Santorini, Greece', description: 'Drift past volcanic cliffs with a small-group cruise and local mezze.', category: 'Relaxation', price: 'From $89', priceNum: 89, image: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?auto=format&fit=crop&w=900&q=85' },
-  { title: 'Street food discovery walk', city: 'Lisbon, Portugal', description: 'Taste neighborhood favorites while a local guide shares the city’s stories.', category: 'Food & drink', price: 'From $38', priceNum: 38, image: 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=900&q=85' },
-  { title: 'Rainforest waterfall hike', city: 'La Fortuna, Costa Rica', description: 'Follow a lush jungle trail to a cool natural pool beneath a towering fall.', category: 'Nature', price: 'From $64', priceNum: 64, image: 'https://images.unsplash.com/photo-1516690561799-46d8f74f9abf?auto=format&fit=crop&w=900&q=85' },
-  { title: 'Midnight museum evening', city: 'Paris, France', description: 'See timeless masterpieces after dark with an art historian by your side.', category: 'Arts', price: 'From $72', priceNum: 72, image: 'https://images.unsplash.com/photo-1564399579883-451a5d44ec08?auto=format&fit=crop&w=900&q=85' },
+const fallbackActivities: Activity[] = [
+  { id: 'fallback-1', title: 'Paragliding over the valley', city: 'Interlaken, Switzerland', description: 'Soar above alpine lakes and snow-capped peaks with a certified local pilot.', category: 'Adventure', price: 'From $145', priceNum: 145, image: 'https://images.unsplash.com/photo-1521336575822-6da63fb45455?auto=format&fit=crop&w=900&q=85' },
+  { id: 'fallback-2', title: 'Kyoto tea ceremony', city: 'Kyoto, Japan', description: 'Learn the rituals and quiet art of matcha in a traditional tea house.', category: 'Culture', price: 'From $52', priceNum: 52, image: 'https://images.unsplash.com/photo-1545569341-9eb8b30979d9?auto=format&fit=crop&w=900&q=85' },
+  { id: 'fallback-3', title: 'Sunset sailing cruise', city: 'Santorini, Greece', description: 'Drift past volcanic cliffs with a small-group cruise and local mezze.', category: 'Relaxation', price: 'From $89', priceNum: 89, image: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?auto=format&fit=crop&w=900&q=85' },
+  { id: 'fallback-4', title: 'Street food discovery walk', city: 'Lisbon, Portugal', description: 'Taste neighborhood favorites while a local guide shares the city’s stories.', category: 'Food & drink', price: 'From $38', priceNum: 38, image: 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=900&q=85' },
+  { id: 'fallback-5', title: 'Rainforest waterfall hike', city: 'La Fortuna, Costa Rica', description: 'Follow a lush jungle trail to a cool natural pool beneath a towering fall.', category: 'Nature', price: 'From $64', priceNum: 64, image: 'https://images.unsplash.com/photo-1516690561799-46d8f74f9abf?auto=format&fit=crop&w=900&q=85' },
+  { id: 'fallback-6', title: 'Midnight museum evening', city: 'Paris, France', description: 'See timeless masterpieces after dark with an art historian by your side.', category: 'Arts', price: 'From $72', priceNum: 72, image: 'https://images.unsplash.com/photo-1564399579883-451a5d44ec08?auto=format&fit=crop&w=900&q=85' },
 ]
 
 export function ActivitySearch() {
@@ -44,6 +46,7 @@ export function ActivitySearch() {
   const [filterOpen, setFilterOpen] = useState(false)
   const [sortAsc, setSortAsc] = useState(false)
   const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_USER_PREFERENCES)
+  const [activities, setActivities] = useState<Activity[]>(fallbackActivities)
 
   useEffect(() => {
     async function load() {
@@ -51,6 +54,18 @@ export function ActivitySearch() {
       setPreferences(prefs)
     }
     load()
+  }, [])
+
+  useEffect(() => {
+    async function loadActivities() {
+      const { data, error } = await createClient().from('activities').select('id, name, description, type, cost, image_url, cities(name, country)').order('created_at', { ascending: false })
+      if (error || !data?.length) return
+      setActivities(data.map((item) => {
+        const city = Array.isArray(item.cities) ? item.cities[0] : item.cities
+        return { id: item.id, title: item.name, city: city ? `${city.name}, ${city.country}` : 'Unassigned city', description: item.description ?? 'Explore something memorable.', category: item.type ?? 'Activity', price: item.cost ? `From $${item.cost}` : 'Free', priceNum: Number(item.cost) || 0, image: item.image_url || fallbackActivities[0].image }
+      }))
+    }
+    loadActivities()
   }, [])
 
   // Score activities according to Supabase travel preferences
@@ -182,7 +197,7 @@ export function ActivitySearch() {
           <div className="space-y-3 sm:space-y-4">
             {results.map((activity) => (
               <Link
-                href="/trips/new"
+                href={`/trips/new?activityId=${activity.id}`}
                 key={activity.title}
                 className="group flex min-h-[144px] overflow-hidden rounded-2xl border border-border bg-background shadow-lg shadow-black/10 transition-all hover:-translate-y-0.5 hover:border-accent/60 hover:shadow-black/25"
               >

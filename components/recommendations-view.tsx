@@ -391,7 +391,7 @@ export function RecommendationsView() {
 
                     {/* Action Button */}
                     <Link
-                      href="/trips/new"
+                      href={`/trips/new?city=${encodeURIComponent(`${dest.name}, ${dest.country}`)}`}
                       className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground transition hover:opacity-90"
                     >
                       <Plus size={15} /> Plan Trip to {dest.name}
@@ -466,7 +466,7 @@ export function RecommendationsView() {
                     {act.category}
                   </span>
                   <Link
-                    href="/trips/new"
+                    href={`/trips/new?activityId=${act.id}`}
                     className="font-semibold text-accent hover:underline flex items-center gap-1"
                   >
                     Add <ArrowRight size={12} />

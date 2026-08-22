@@ -15,11 +15,14 @@ export const viewport: Viewport = {
   initialScale: 1,
 }
 
+import { MobileNavbar } from '@/components/mobile-navbar'
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className="bg-background">
-      <body className="antialiased">
+      <body className="antialiased pb-16 md:pb-0">
         {children}
+        <MobileNavbar />
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

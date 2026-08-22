@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { ArrowLeft, CalendarDays, Check, Compass, Loader2, MapPin, Plus, Sparkles } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getUserPreferences, UserPreferences, DEFAULT_USER_PREFERENCES } from '@/lib/supabase/user-data'
 
 type City = { id: string; name: string; country: string; image_url: string | null }
-type Activity = { id: string; name: string; description: string | null; image_url: string | null; city_id: string | null }
+type Activity = { id: string; name: string; description: string | null; image_url: string | null; city_id: string | null; cost: number | null }
 
 const fallbackImages = [
   'https://images.unsplash.com/photo-1530789253388-582c481c54b0?auto=format&fit=crop&w=700&q=80',
@@ -19,12 +20,20 @@ const fallbackImages = [
 ]
 
 export default function NewTripForm({ cities, activities }: { cities: City[]; activities: Activity[] }) {
+  const searchParams = useSearchParams()
+  const activityId = searchParams.get('activityId')
+  const cityParam = searchParams.get('city')
   const [form, setForm] = useState({ name: '', startDate: '', place: '', endDate: '' })
   const [selected, setSelected] = useState<Activity[]>([])
   const [error, setError] = useState('')
   const [status, setStatus] = useState('')
   const [loading, setLoading] = useState(false)
   const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_USER_PREFERENCES)
+
+  useEffect(() => {
+    if (!cityParam || !cities.some((city) => `${city.name}, ${city.country}` === cityParam)) return
+    setForm((current) => ({ ...current, place: cityParam }))
+  }, [cities, cityParam])
 
   useEffect(() => {
     async function load() {
@@ -34,6 +43,12 @@ export default function NewTripForm({ cities, activities }: { cities: City[]; ac
     load()
   }, [])
 
+  useEffect(() => {
+    if (!activityId) return
+    const activity = activities.find((item) => item.id === activityId)
+    if (activity) setSelected((current) => current.some((item) => item.id === activity.id) ? current : [...current, activity])
+  }, [activities, activityId])
+
   const suggestions = useMemo(() => {
     if (activities.length) return activities
     return cities.slice(0, 6).map((city) => ({
@@ -42,6 +57,7 @@ export default function NewTripForm({ cities, activities }: { cities: City[]; ac
       description: `${city.name}, ${city.country}`,
       image_url: city.image_url,
       city_id: city.id,
+      cost: null,
     }))
   }, [activities, cities])
 
@@ -99,7 +115,7 @@ export default function NewTripForm({ cities, activities }: { cities: City[]; ac
         .filter((activity) => activities.some((item) => item.id === activity.id))
         .map((activity) => activity.id)
       const { error: activitiesError } = stop && selectedActivityIds.length
-        ? await supabase.from('trip_activities').insert(selectedActivityIds.map((activityId) => ({ stop_id: stop.id, activity_id: activityId })))
+        ? await supabase.from('trip_activities').insert(selectedActivityIds.map((activityId) => ({ stop_id: stop.id, activity_id: activityId, cost: activities.find((activity) => activity.id === activityId)?.cost ?? null })))
         : { error: null }
 
       if (stopError || activitiesError) {
