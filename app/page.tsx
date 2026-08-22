@@ -29,12 +29,27 @@ import {
   UserPreferences,
   DEFAULT_USER_PREFERENCES
 } from '@/lib/supabase/user-data'
+import { createClient } from '@/lib/supabase/client'
 
-const previousTrips = [
-  { name: 'Lisbon & Porto', dates: 'May 12 — May 21, 2024', image: 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=1000&q=80', places: '12 places saved' },
-  { name: 'The Greek Islands', dates: 'Aug 04 — Aug 15, 2023', image: 'https://images.unsplash.com/photo-1530841377377-3ff06c0ca713?auto=format&fit=crop&w=1000&q=80', places: '8 places saved' },
-  { name: 'New York City', dates: 'Oct 19 — Oct 25, 2022', image: 'https://images.unsplash.com/photo-1496588152823-86ff7695e68f?auto=format&fit=crop&w=1000&q=80', places: '15 places saved' },
+type DashboardTrip = {
+  id: string
+  name: string
+  destination: string
+  dates: string
+  image: string
+}
+
+const tripImages = [
+  'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=1000&q=80',
+  'https://images.unsplash.com/photo-1530841377377-3ff06c0ca713?auto=format&fit=crop&w=1000&q=80',
+  'https://images.unsplash.com/photo-1496588152823-86ff7695e68f?auto=format&fit=crop&w=1000&q=80',
 ]
+
+function formatTripDates(startDate?: string, endDate?: string) {
+  if (!startDate && !endDate) return 'Dates not set'
+  const format = (date?: string) => date ? new Date(`${date}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: 'numeric' }) : '—'
+  return `${format(startDate)} — ${format(endDate)}`
+}
 
 export default function Page() {
   const [query, setQuery] = useState('')
@@ -44,12 +59,22 @@ export default function Page() {
   const [activeTab, setActiveTab] = useState('Discover')
   const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_USER_PREFERENCES)
   const [userTrips, setUserTrips] = useState<string[]>([])
+  const [previousTrips, setPreviousTrips] = useState<DashboardTrip[]>([])
+  const [userName, setUserName] = useState('')
+  const [userEmail, setUserEmail] = useState('')
   const filters = ['All', '90%+ Match', 'Coastal', 'Cultural', 'Adventure', 'City']
 
   // Load user data from Supabase / cache
   useEffect(() => {
     async function loadUserData() {
       try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          setUserEmail(user.email ?? '')
+          const { data: profile } = await supabase.from('profiles').select('name').eq('id', user.id).maybeSingle()
+          setUserName(profile?.name || user.user_metadata?.name || user.email?.split('@')[0] || '')
+        }
         const [prefs, favs, trips] = await Promise.all([
           getUserPreferences(),
           getUserFavorites(),
@@ -58,6 +83,13 @@ export default function Page() {
         setPreferences(prefs)
         setSaved(favs)
         setUserTrips(trips.map((t) => t.destination || t.name))
+        setPreviousTrips(trips.map((trip, index) => ({
+          id: trip.id,
+          name: trip.name,
+          destination: trip.destination,
+          dates: formatTripDates(trip.start_date, trip.end_date),
+          image: tripImages[index % tripImages.length],
+        })))
       } catch (e) {
         console.warn('Could not load user data from Supabase:', e)
       }
@@ -127,7 +159,7 @@ export default function Page() {
               <Bell size={18} />
             </button>
             <button onClick={() => setProfileOpen(!profileOpen)} className="flex items-center gap-2 rounded-full border border-border bg-muted/60 p-1 pr-3" aria-expanded={profileOpen} aria-label="Open profile menu">
-              <span className="grid size-8 place-items-center rounded-full bg-accent text-xs font-bold text-accent-foreground">AM</span>
+              <span className="grid size-8 place-items-center rounded-full bg-accent text-xs font-bold text-accent-foreground">{(userName || userEmail || 'GT').slice(0, 2).toUpperCase()}</span>
               <ChevronDown size={14} className="text-muted-foreground" />
             </button>
             {profileOpen && (
@@ -136,7 +168,8 @@ export default function Page() {
                 <Link href="/recommendations" className="block w-full rounded-lg px-3 py-2 text-left hover:bg-muted flex items-center gap-1.5">
                   <Sparkles size={13} className="text-accent" /> AI Recommendations
                 </Link>
-                <Link href="/auth" className="block w-full rounded-lg px-3 py-2 text-left hover:bg-muted">Log in / Register</Link>
+                <span className="block px-3 py-2 text-xs text-muted-foreground">{userEmail || 'Guest mode'}</span>
+                {userEmail ? <button onClick={async () => { await createClient().auth.signOut(); window.location.href = '/auth' }} className="block w-full rounded-lg px-3 py-2 text-left hover:bg-muted">Log out</button> : <Link href="/auth" className="block w-full rounded-lg px-3 py-2 text-left hover:bg-muted">Log in / Register</Link>}
               </div>
             )}
           </div>
@@ -321,17 +354,19 @@ export default function Page() {
           </div>
           <div className="mt-4 grid gap-4 md:grid-cols-3">
             {previousTrips.map((trip) => (
-              <article key={trip.name} className="group overflow-hidden rounded-2xl border border-border bg-muted/35">
+              <article key={trip.id} className="group overflow-hidden rounded-2xl border border-border bg-muted/35">
                 <div className="relative aspect-[1.8] overflow-hidden">
                   <img src={trip.image} alt={trip.name} className="size-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                  <span className="absolute bottom-3 left-3 rounded-full bg-black/45 px-3 py-1 text-[11px] text-white backdrop-blur-sm">{trip.places}</span>
+                  <span className="absolute bottom-3 left-3 rounded-full bg-black/45 px-3 py-1 text-[11px] text-white backdrop-blur-sm">Saved trip</span>
                 </div>
                 <div className="p-4">
                   <h3 className="font-serif text-lg">{trip.name}</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">{trip.destination}</p>
                   <p className="mt-1 text-xs text-muted-foreground">{trip.dates}</p>
                 </div>
               </article>
             ))}
+            {!previousTrips.length && <div className="col-span-full rounded-2xl border border-dashed border-border px-5 py-8 text-center"><p className="text-sm text-muted-foreground">Your saved trips will appear here.</p><Link href="/trips/new" className="mt-3 inline-flex text-sm font-semibold text-accent hover:underline">Plan your first trip <ArrowRight size={14} className="ml-1 inline" /></Link></div>}
           </div>
         </section>
 
