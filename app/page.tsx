@@ -52,10 +52,6 @@ function formatTripDates(startDate?: string, endDate?: string) {
   return `${format(startDate)} — ${format(endDate)}`
 }
 
-function getDestinationImageUrl(destination: Pick<DestinationRecommendation, 'name' | 'country'>) {
-  return `/api/destination-image?name=${encodeURIComponent(destination.name)}&country=${encodeURIComponent(destination.country)}`
-}
-
 export default function Page() {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('All')
@@ -229,17 +225,7 @@ export default function Page() {
               return (
                 <div key={pick.id} className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card p-4 transition-all duration-300 hover:border-accent/60 hover:shadow-xl hover:shadow-black/20">
                   <div className="relative aspect-[1.5] w-full overflow-hidden rounded-xl bg-muted">
-                    <Image
-                      src={getDestinationImageUrl(pick)}
-                      alt={pick.name}
-                      fill
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                      onError={(event) => {
-                        event.currentTarget.onerror = null
-                        event.currentTarget.src = pick.image
-                      }}
-                    />
+                    <Image src={pick.image} alt={pick.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="(max-width: 768px) 100vw, 33vw" />
                     <span className="absolute left-2.5 top-2.5 rounded-full bg-black/65 px-2.5 py-1 text-xs font-bold text-accent backdrop-blur-sm border border-accent/20">
                       {pick.matchScore}% Match
                     </span>
@@ -338,17 +324,7 @@ export default function Page() {
               const isSaved = saved.includes(destination.name)
               return (
                 <article key={destination.name} className="group relative aspect-[0.8] overflow-hidden rounded-2xl bg-muted shadow-md">
-                  <Image
-                    src={getDestinationImageUrl(destination)}
-                    alt={`${destination.name}, ${destination.region}`}
-                    fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    sizes="(max-width: 768px) 50vw, 20vw"
-                    onError={(event) => {
-                      event.currentTarget.onerror = null
-                      event.currentTarget.src = destination.image
-                    }}
-                  />
+                  <Image src={destination.image} alt={`${destination.name}, ${destination.region}`} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="(max-width: 768px) 50vw, 20vw" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
                   <span className="absolute left-2.5 top-2.5 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold text-accent backdrop-blur-sm border border-accent/20">
                     {destination.matchScore}% Match
