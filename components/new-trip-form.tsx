@@ -91,25 +91,26 @@ export default function NewTripForm({ cities, activities }: { cities: City[]; ac
         return
       }
 
-      let city = availableCities.find((item) => `${item.name}, ${item.country}` === form.place)
-      if (!city) {
+      const selectedCity = availableCities.find((item) => `${item.name}, ${item.country}` === form.place)
+      if (!selectedCity) {
         setError('Please choose a valid destination.')
         return
       }
+      let city: City = selectedCity
 
       if (city.id.startsWith('catalog-')) {
-        const catalogDestination = additionalDestinations.find((destination) => destination.id === city?.id.replace('catalog-', ''))
-        const { data: createdCity, error: cityError } = await supabase
-          .from('cities')
-          .insert({
-            name: city.name,
-            country: city.country,
-            cost_index: catalogDestination?.avgDailyCost ?? 0,
-            popularity: 0,
-            image_url: city.image_url,
-          })
-          .select('id, name, country, image_url')
-          .single()
+        const catalogDestination = additionalDestinations.find((destination) => destination.id === city.id.replace('catalog-', ''))
+        const { data: createdCityData, error: cityError } = await supabase.rpc('get_or_create_catalog_city', {
+          p_name: city.name,
+          p_country: city.country,
+          p_region: catalogDestination?.region ?? null,
+          p_type: catalogDestination?.type ?? 'Cultural',
+          p_image_url: city.image_url,
+          p_avg_daily_cost: catalogDestination?.avgDailyCost ?? 120,
+          p_recommended_accommodation: catalogDestination?.recommendedAccommodation ?? 'Hotel',
+          p_description: catalogDestination?.description ?? null,
+        }).maybeSingle()
+        const createdCity = createdCityData as City | null
         if (cityError || !createdCity) {
           setError('We could not save this destination. Please try again.')
           return
