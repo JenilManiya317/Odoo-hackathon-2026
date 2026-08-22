@@ -23,14 +23,14 @@ export default function ItineraryBuilder() {
       if (!tripId) { setError('Choose a trip before editing its itinerary.'); return }
       const supabase = createClient()
       const [{ data: stops, error: stopsError }, { data: cityRows }] = await Promise.all([
-        supabase.from('stops').select('id, city_id, arrival_date, departure_date, cities(name, country)').eq('trip_id', tripId).order('order_index'),
+        supabase.from('stops').select('id, city_id, arrival_date, departure_date, description, budget, cities(name, country)').eq('trip_id', tripId).order('order_index'),
         supabase.from('cities').select('id, name, country').order('name'),
       ])
       if (stopsError) { setError('We could not load this itinerary.'); return }
       setCities(cityRows ?? [])
       setSections((stops ?? []).map((stop, index) => {
         const city = Array.isArray(stop.cities) ? stop.cities[0] : stop.cities
-        return { id: stop.id, title: city ? `${city.name}, ${city.country}` : `Stop ${index + 1}`, description: city ? `Plan your time in ${city.name}.` : 'Add details for this stop.', dateRange: `${stop.arrival_date ?? ''} to ${stop.departure_date ?? ''}`, budget: 'Budget not set', open: true, cityId: stop.city_id }
+        return { id: stop.id, title: city ? `${city.name}, ${city.country}` : `Stop ${index + 1}`, description: stop.description ?? (city ? `Plan your time in ${city.name}.` : 'Add details for this stop.'), dateRange: `${stop.arrival_date ?? ''} to ${stop.departure_date ?? ''}`, budget: stop.budget ?? 'Budget not set', open: true, cityId: stop.city_id }
       }))
     }
     load()
@@ -53,7 +53,7 @@ export default function ItineraryBuilder() {
     const supabase = createClient()
     const results = await Promise.all(sections.map((section, index) => {
       const [arrivalDate, departureDate] = section.dateRange.split(' to ').map((date) => date.trim())
-      const values = { trip_id: tripId, city_id: section.cityId, arrival_date: arrivalDate || null, departure_date: departureDate || null, order_index: index }
+      const values = { trip_id: tripId, city_id: section.cityId, arrival_date: arrivalDate || null, departure_date: departureDate || null, description: section.description, budget: section.budget, order_index: index }
       return section.id.startsWith('new-')
         ? supabase.from('stops').insert(values)
         : supabase.from('stops').update(values).eq('id', section.id)
