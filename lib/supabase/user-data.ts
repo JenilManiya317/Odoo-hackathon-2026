@@ -190,6 +190,61 @@ export async function toggleUserFavorite(
   return { saved: !isSaved, list: updatedList }
 }
 
+export type FavoriteItemDetail = {
+  id: string
+  name: string
+  type: string
+  data?: Record<string, unknown>
+  created_at?: string
+}
+
+export async function getDetailedFavorites(): Promise<FavoriteItemDetail[]> {
+  const list: FavoriteItemDetail[] = []
+  if (typeof window === 'undefined') return list
+
+  try {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data, error } = await supabase
+        .from('user_favorites')
+        .select('id, item_id, item_name, item_type, item_data, created_at')
+        .eq('user_id', user.id)
+      if (data && !error) {
+        data.forEach((item) => {
+          list.push({
+            id: item.id,
+            name: item.item_name || item.item_id,
+            type: item.item_type || 'destination',
+            data: (item.item_data as Record<string, unknown>) || {},
+            created_at: item.created_at,
+          })
+        })
+      }
+    }
+  } catch (err) {
+    console.warn('Could not load detailed favorites from Supabase:', err)
+  }
+
+  try {
+    const cachedNames: string[] = JSON.parse(localStorage.getItem(LOCAL_FAV_KEY) || '[]')
+    cachedNames.forEach((name) => {
+      if (!list.some((item) => item.name.toLowerCase() === name.toLowerCase())) {
+        list.push({
+          id: `fav-${name.toLowerCase().replace(/\s+/g, '-')}`,
+          name,
+          type: 'destination',
+          data: {},
+        })
+      }
+    })
+  } catch {
+    // ignore
+  }
+
+  return list
+}
+
 export type UserTripItem = { id: string; name: string; destination: string; start_date?: string; end_date?: string; is_public?: boolean; created_at?: string }
 
 export function getLocalTrips(): UserTripItem[] {
