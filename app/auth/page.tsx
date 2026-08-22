@@ -1,6 +1,6 @@
 'use client'
 
-import { FormEvent, useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Compass, Eye, EyeOff, Loader2, MapPin } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -12,6 +12,12 @@ export default function AuthPage() {
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
 
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('error') === 'confirmation_failed') {
+      setMessage('Your confirmation link is invalid or has expired. Please register again.')
+    }
+  }, [])
+
   function update(key: keyof typeof form, value: string) {
     setForm((current) => ({ ...current, [key]: value }))
   }
@@ -21,22 +27,36 @@ export default function AuthPage() {
     setLoading(true)
     setMessage('')
     const supabase = createClient()
-    if (mode === 'login') {
-      const { error } = await supabase.auth.signInWithPassword({ email: form.username, password: form.password })
-      if (error) setMessage('Invalid email or password.')
-      else window.location.href = '/'
-    } else {
-      const { error } = await supabase.auth.signUp({
-        email: form.email,
-        password: form.password,
-        options: {
-          emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ?? `${window.location.origin}/auth/callback`,
-          data: { first_name: form.firstName, last_name: form.lastName, phone: form.phone, city: form.city, country: form.country },
-        },
-      })
-      setMessage(error ? 'We could not create your account. Check your details and try again.' : 'Registration received. Check your email to confirm your account.')
+    try {
+      if (mode === 'login') {
+        const { error } = await supabase.auth.signInWithPassword({ email: form.username, password: form.password })
+        if (error) setMessage('Invalid email or password.')
+        else window.location.href = '/'
+      } else {
+        const { data, error } = await supabase.auth.signUp({
+          email: form.email,
+          password: form.password,
+          options: {
+            emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ?? `${window.location.origin}/auth/callback`,
+            data: {
+              name: `${form.firstName} ${form.lastName}`.trim(),
+              first_name: form.firstName,
+              last_name: form.lastName,
+              phone: form.phone,
+              city: form.city,
+              country: form.country,
+            },
+          },
+        })
+        if (error) setMessage('We could not create your account. Check your details and try again.')
+        else if (data.session) window.location.href = '/'
+        else setMessage('Registration received. Check your email to confirm your account.')
+      }
+    } catch {
+      setMessage('The authentication service is unavailable. Please try again.')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   const field = (label: string, key: keyof typeof form, type = 'text') => (
