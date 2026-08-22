@@ -121,6 +121,7 @@ export default function NewTripForm({ cities, activities }: { cities: City[]; ac
         .from('trips')
         .insert({
           user_id: user.id,
+          name: `Trip to ${form.place}`,
           start_date: form.startDate,
           end_date: form.endDate,
           description: `Trip to ${form.place}`,
