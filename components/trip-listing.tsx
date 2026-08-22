@@ -14,6 +14,7 @@ type Trip = {
   image: string
   places: number
   accent: string
+  activities: string[]
 }
 
 const tripImages = ['https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1200&q=85', 'https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=1200&q=85', 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=1200&q=85']
@@ -34,18 +35,30 @@ export function TripListing() {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
-      const { data } = await supabase.from('trips').select('id, name, description, start_date, end_date, created_at').eq('user_id', user.id).order('created_at', { ascending: false })
+      const { data } = await supabase.from('trips').select(`
+        id, name, description, start_date, end_date, created_at,
+        stops (
+          city:cities (name, country, image_url),
+          trip_activities (activity:activities (name))
+        )
+      `).eq('user_id', user.id).order('created_at', { ascending: false })
       const today = new Date().toISOString().slice(0, 10)
-      setTrips((data ?? []).map((trip, index) => ({
+      setTrips((data ?? []).map((trip: any, index) => {
+        const stops = trip.stops ?? []
+        const firstCity = stops[0]?.city
+        const activities = stops.flatMap((stop: any) => (stop.trip_activities ?? []).map((item: any) => item.activity?.name).filter(Boolean))
+        return {
         id: trip.id,
         name: trip.name,
-        destination: trip.description?.replace(/^Trip to /, '') || 'Destination not set',
+        destination: firstCity ? `${firstCity.name}, ${firstCity.country}` : trip.description?.replace(/^Trip to /, '') || 'Destination not set',
         dates: trip.start_date && trip.end_date ? `${trip.start_date} — ${trip.end_date}` : 'Dates not set',
         status: trip.end_date && trip.end_date < today ? 'Completed' : trip.start_date && trip.start_date <= today ? 'Ongoing' : 'Up-coming',
-        image: tripImages[index % tripImages.length],
-        places: 1,
+        image: firstCity?.image_url || tripImages[index % tripImages.length],
+        places: stops.length || 1,
         accent: 'Personal trip',
-      })))
+        activities,
+      }
+      }))
       setLoading(false)
     }
     loadTrips()
@@ -94,7 +107,7 @@ export function TripListing() {
           {categories.map((category) => {
             const categoryTrips = filteredTrips.filter((trip) => trip.status === category)
             if (!categoryTrips.length) return null
-            return <div key={category}><div className="mb-3 flex items-center justify-between"><h2 className="font-serif text-2xl sm:text-3xl">{category}</h2><span className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{categoryTrips.length} {categoryTrips.length === 1 ? 'trip' : 'trips'}</span></div><div className="space-y-3">{categoryTrips.map((trip) => <div key={trip.id} className="group relative flex min-h-[150px] overflow-hidden rounded-2xl border border-border bg-muted/30 transition-all hover:border-accent/60"><Link href={`/trips/itinerary?tripId=${trip.id}`} className="flex min-w-0 flex-1"><div className="relative w-[34%] min-w-[120px] overflow-hidden sm:w-[28%]"><img src={trip.image} alt={`${trip.destination} travel scene`} className="size-full object-cover transition-transform duration-500 group-hover:scale-105" /></div><div className="flex min-w-0 flex-1 flex-col justify-center gap-2 p-4 sm:p-5"><div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-accent/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-accent">{trip.accent}</span><span className="text-xs text-muted-foreground">{trip.places} place</span></div><h3 className="truncate font-serif text-xl sm:text-2xl">{trip.name}</h3><div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground"><span className="flex items-center gap-1.5"><MapPin size={13} className="text-accent" />{trip.destination}</span><span className="flex items-center gap-1.5"><CalendarDays size={13} />{trip.dates}</span></div></div></Link><div className="flex items-center pr-4"><Link href={`/trips/new?tripId=${trip.id}`} aria-label={`Edit ${trip.name}`} className="p-2 text-muted-foreground hover:text-accent">Edit</Link><button onClick={() => deleteTrip(trip.id)} aria-label={`Delete ${trip.name}`} className="p-2 text-muted-foreground hover:text-destructive"><Trash2 size={17} /></button></div></div>)}</div></div>
+            return <div key={category}><div className="mb-3 flex items-center justify-between"><h2 className="font-serif text-2xl sm:text-3xl">{category}</h2><span className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{categoryTrips.length} {categoryTrips.length === 1 ? 'trip' : 'trips'}</span></div><div className="space-y-3">{categoryTrips.map((trip) => <div key={trip.id} className="group relative flex min-h-[150px] overflow-hidden rounded-2xl border border-border bg-muted/30 transition-all hover:border-accent/60"><Link href={`/trips/itinerary?tripId=${trip.id}`} className="flex min-w-0 flex-1"><div className="relative w-[34%] min-w-[120px] overflow-hidden sm:w-[28%]"><img src={trip.image} alt={`${trip.destination} travel scene`} className="size-full object-cover transition-transform duration-500 group-hover:scale-105" /></div><div className="flex min-w-0 flex-1 flex-col justify-center gap-2 p-4 sm:p-5"><div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-accent/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-accent">{trip.accent}</span><span className="text-xs text-muted-foreground">{trip.places} {trip.places === 1 ? 'place' : 'places'}</span></div><h3 className="truncate font-serif text-xl sm:text-2xl">{trip.name}</h3><div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground"><span className="flex items-center gap-1.5"><MapPin size={13} className="text-accent" />{trip.destination}</span><span className="flex items-center gap-1.5"><CalendarDays size={13} />{trip.dates}</span></div>{trip.activities.length > 0 && <p className="truncate text-xs text-muted-foreground">Activities: {trip.activities.join(', ')}</p>}</div></Link><div className="flex items-center pr-4"><Link href={`/trips/new?tripId=${trip.id}`} aria-label={`Edit ${trip.name}`} className="p-2 text-muted-foreground hover:text-accent">Edit</Link><button onClick={() => deleteTrip(trip.id)} aria-label={`Delete ${trip.name}`} className="p-2 text-muted-foreground hover:text-destructive"><Trash2 size={17} /></button></div></div>)}</div></div>
           })}
           {!filteredTrips.length && <div className="rounded-2xl border border-dashed border-border py-16 text-center"><Search className="mx-auto text-muted-foreground" size={26} /><p className="mt-3 text-sm text-muted-foreground">No trips match your search.</p></div>}
         </section>
