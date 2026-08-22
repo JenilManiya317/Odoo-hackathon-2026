@@ -87,19 +87,19 @@ export default function NewTripForm({ cities, activities }: { cities: City[]; ac
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        setError('Please log in before creating a trip.')
-        return
+
+      const selectedCity = availableCities.find(
+        (item) => `${item.name}, ${item.country}`.toLowerCase() === form.place.toLowerCase() || item.name.toLowerCase() === form.place.toLowerCase()
+      )
+      const placeParts = form.place.split(',')
+      let city: City = selectedCity || {
+        id: `custom-${form.place.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+        name: placeParts[0].trim(),
+        country: placeParts[1]?.trim() || 'Worldwide',
+        image_url: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=700&q=80',
       }
 
-      const selectedCity = availableCities.find((item) => `${item.name}, ${item.country}` === form.place)
-      if (!selectedCity) {
-        setError('Please choose a valid destination.')
-        return
-      }
-      let city: City = selectedCity
-
-      if (city.id.startsWith('catalog-')) {
+      if (user && city.id.startsWith('catalog-')) {
         const catalogDestination = additionalDestinations.find((destination) => destination.id === city.id.replace('catalog-', ''))
         const { data: createdCityData } = await supabase.rpc('get_or_create_catalog_city', {
           p_name: city.name,
@@ -132,61 +132,66 @@ export default function NewTripForm({ cities, activities }: { cities: City[]; ac
         }
       }
 
-      const { data: trip, error: tripError } = await supabase
-        .from('trips')
-        .insert({
-          user_id: user.id,
-          name: `Trip to ${form.place}`,
-          start_date: form.startDate,
-          end_date: form.endDate,
-          description: `Trip to ${form.place}`,
-          is_public: false,
-        })
-        .select('id, name, description, start_date, end_date, created_at')
-        .single()
+      let tripId = `trip_${Date.now()}`
+      let createdAt = new Date().toISOString()
 
-      if (tripError || !trip) {
-        setError('We could not save this trip. Please try again.')
-        return
+      if (user) {
+        const { data: trip } = await supabase
+          .from('trips')
+          .insert({
+            user_id: user.id,
+            name: `Trip to ${form.place}`,
+            start_date: form.startDate,
+            end_date: form.endDate,
+            description: `Trip to ${form.place}`,
+            is_public: false,
+          })
+          .select('id, created_at')
+          .maybeSingle()
+
+        if (trip) {
+          tripId = trip.id
+          if (trip.created_at) createdAt = trip.created_at
+
+          if (!city.id.startsWith('catalog-') && !city.id.startsWith('custom-')) {
+            const { data: stop } = await supabase.from('stops').insert({
+              trip_id: trip.id,
+              city_id: city.id,
+              arrival_date: form.startDate,
+              departure_date: form.endDate,
+              order_index: 0,
+            }).select('id').maybeSingle()
+
+            const selectedActivityIds = selected
+              .filter((activity) => activities.some((item) => item.id === activity.id))
+              .map((activity) => activity.id)
+
+            if (stop && selectedActivityIds.length) {
+              await supabase.from('trip_activities').insert(
+                selectedActivityIds.map((activityId) => ({
+                  stop_id: stop.id,
+                  activity_id: activityId,
+                  cost: activities.find((activity) => activity.id === activityId)?.cost ?? null,
+                }))
+              )
+            }
+          }
+        }
       }
 
       saveLocalTrip({
-        id: trip.id,
-        name: trip.name,
+        id: tripId,
+        name: `Trip to ${form.place}`,
         destination: form.place,
         start_date: form.startDate,
         end_date: form.endDate,
-        created_at: trip.created_at || new Date().toISOString(),
+        created_at: createdAt,
       })
-
-      if (!city.id.startsWith('catalog-')) {
-        const { data: stop } = await supabase.from('stops').insert({
-          trip_id: trip.id,
-          city_id: city.id,
-          arrival_date: form.startDate,
-          departure_date: form.endDate,
-          order_index: 0,
-        }).select('id').single()
-
-        const selectedActivityIds = selected
-          .filter((activity) => activities.some((item) => item.id === activity.id))
-          .map((activity) => activity.id)
-
-        if (stop && selectedActivityIds.length) {
-          await supabase.from('trip_activities').insert(
-            selectedActivityIds.map((activityId) => ({
-              stop_id: stop.id,
-              activity_id: activityId,
-              cost: activities.find((activity) => activity.id === activityId)?.cost ?? null,
-            }))
-          )
-        }
-      }
 
       setStatus('Trip saved! Redirecting to My Trips...')
       setTimeout(() => {
         router.push('/trips')
-      }, 800)
+      }, 500)
     } catch {
       setError('The travel service is unavailable. Please try again.')
     } finally {
