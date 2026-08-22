@@ -26,6 +26,18 @@ export default function AuthPage() {
       if (error) setMessage('Invalid email or password.')
       else window.location.href = '/'
     } else {
+      // Enforce strict password policy
+      const uppercaseCount = (form.password.match(/[A-Z]/g) || []).length
+      const lowercaseCount = (form.password.match(/[a-z]/g) || []).length
+      const numberCount = (form.password.match(/[0-9]/g) || []).length
+      const symbolCount = (form.password.match(/[^A-Za-z0-9]/g) || []).length
+
+      if (uppercaseCount < 2 || lowercaseCount < 2 || numberCount < 2 || symbolCount < 2) {
+        setMessage('Password must contain at least 2 uppercase letters, 2 lowercase letters, 2 numbers, and 2 symbols.')
+        setLoading(false)
+        return
+      }
+
       const { error } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
