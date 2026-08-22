@@ -30,7 +30,6 @@ const catalogCities: City[] = additionalDestinations.map((destination) => ({
 export default function NewTripForm({ cities, activities }: { cities: City[]; activities: Activity[] }) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const router = useRouter()
   const activityId = searchParams.get('activityId')
   const cityParam = searchParams.get('city')
   const [form, setForm] = useState({ startDate: '', place: '', endDate: '' })
@@ -190,28 +189,10 @@ export default function NewTripForm({ cities, activities }: { cities: City[]; ac
         created_at: createdAt,
       })
 
-<<<<<<< HEAD
       setStatus('Trip saved! Redirecting to My Trips...')
       setTimeout(() => {
         router.push('/trips')
       }, 500)
-=======
-      const selectedActivityIds = selected
-        .filter((activity) => activities.some((item) => item.id === activity.id))
-        .map((activity) => activity.id)
-      const { error: activitiesError } = stop && selectedActivityIds.length
-        ? await supabase.from('trip_activities').insert(selectedActivityIds.map((activityId) => ({ stop_id: stop.id, activity_id: activityId, cost: activities.find((activity) => activity.id === activityId)?.cost ?? null })))
-        : { error: null }
-
-      if (stopError || activitiesError) {
-        await supabase.from('trips').delete().eq('id', trip.id)
-        setError('We could not save the trip destination. Please try again.')
-        return
-      }
-
-      setStatus('Trip saved. Taking you to your trips...')
-      setTimeout(() => router.push('/trips'), 800)
->>>>>>> 1b9ee6f (chat in comm)
     } catch {
       setError('The travel service is unavailable. Please try again.')
     } finally {
