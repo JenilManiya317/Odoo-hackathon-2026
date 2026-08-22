@@ -16,6 +16,7 @@ import {
   MapPin,
   Plus,
   Save,
+  ShieldCheck,
   SlidersHorizontal,
   Sparkles,
   UserRound,
@@ -258,12 +259,20 @@ export function UserProfile() {
                     </>
                   )}
                 </div>
-                <button
-                  onClick={() => editing ? saveProfileName() : setEditing(true)}
-                  className="flex items-center gap-2 rounded-xl border border-border px-3.5 py-2 text-xs font-semibold transition-colors hover:bg-muted"
-                >
-                  <Edit3 size={14} />{editing ? 'Save details' : 'Edit name'}
-                </button>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/admin"
+                    className="flex items-center gap-2 rounded-xl border border-accent/40 bg-accent/10 px-3.5 py-2 text-xs font-semibold text-accent transition-colors hover:bg-accent/20"
+                  >
+                    <ShieldCheck size={14} /> Admin Panel
+                  </Link>
+                  <button
+                    onClick={() => editing ? saveProfileName() : setEditing(true)}
+                    className="flex items-center gap-2 rounded-xl border border-border px-3.5 py-2 text-xs font-semibold transition-colors hover:bg-muted"
+                  >
+                    <Edit3 size={14} />{editing ? 'Save details' : 'Edit name'}
+                  </button>
+                </div>
               </div>
               <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
                 Collecting stories, good food, and places that make you want to stay a little longer.
