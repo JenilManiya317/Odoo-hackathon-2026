@@ -41,7 +41,7 @@ export function TripListing() {
         destination: trip.destination || 'Destination not set',
         dates: trip.start_date && trip.end_date ? `${trip.start_date} — ${trip.end_date}` : 'Dates not set',
         status: trip.end_date && trip.end_date < today ? 'Completed' : trip.start_date && trip.start_date <= today ? 'Ongoing' : 'Up-coming',
-        image: tripImages[index % tripImages.length],
+        image: trip.image || tripImages[index % tripImages.length],
         places: 1,
         accent: 'Personal trip',
         activities: (trip as any).activities || [],

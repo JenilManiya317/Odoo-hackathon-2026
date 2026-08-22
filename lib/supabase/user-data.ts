@@ -190,7 +190,7 @@ export async function toggleUserFavorite(
   return { saved: !isSaved, list: updatedList }
 }
 
-export type UserTripItem = { id: string; name: string; destination: string; start_date?: string; end_date?: string; is_public?: boolean; created_at?: string }
+export type UserTripItem = { id: string; name: string; destination: string; image?: string; start_date?: string; end_date?: string; is_public?: boolean; created_at?: string }
 
 export function getLocalTrips(): UserTripItem[] {
   if (typeof window === 'undefined') return []
@@ -232,6 +232,7 @@ export async function getUserTripsFromSupabase(): Promise<UserTripItem[]> {
           id: t.id,
           name: t.name,
           destination: t.description?.replace(/^Trip to /, '') || t.name,
+          image: localTrips.find((localTrip) => localTrip.id === t.id)?.image,
           start_date: t.start_date,
           end_date: t.end_date,
           is_public: t.is_public,

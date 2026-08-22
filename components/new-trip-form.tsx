@@ -183,6 +183,7 @@ export default function NewTripForm({ cities, activities }: { cities: City[]; ac
         id: tripId,
         name: `Trip to ${form.place}`,
         destination: form.place,
+        image: city.image_url || undefined,
         start_date: form.startDate,
         end_date: form.endDate,
         created_at: createdAt,
