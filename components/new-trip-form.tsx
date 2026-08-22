@@ -55,44 +55,65 @@ export default function NewTripForm({ cities, activities }: { cities: City[]; ac
     if (!form.name.trim() || !form.place || !form.startDate || !form.endDate) return setError('Please complete every trip field.')
     if (form.startDate >= form.endDate) return setError('End date must be after the start date.')
     setLoading(true)
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      setError('Please log in before creating a trip.')
-      setLoading(false)
-      return
-    }
-    const { data: trip, error: tripError } = await supabase
-      .from('trips')
-      .insert({
-        user_id: user.id,
-        name: form.name.trim(),
-        start_date: form.startDate,
-        end_date: form.endDate,
-        description: `Trip to ${form.place}`,
-        is_public: false,
-      })
-      .select('id')
-      .single()
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setError('Please log in before creating a trip.')
+        return
+      }
 
-    if (tripError || !trip) {
-      setError('We could not save this trip. Please try again.')
-      setLoading(false)
-      return
-    }
+      const city = cities.find((item) => `${item.name}, ${item.country}` === form.place)
+      if (!city) {
+        setError('Please choose a valid destination.')
+        return
+      }
 
-    const city = cities.find((item) => `${item.name}, ${item.country}` === form.place)
-    if (city) {
-      await supabase.from('trip_stops').insert({
+      const { data: trip, error: tripError } = await supabase
+        .from('trips')
+        .insert({
+          user_id: user.id,
+          name: form.name.trim(),
+          start_date: form.startDate,
+          end_date: form.endDate,
+          description: `Trip to ${form.place}`,
+          is_public: false,
+        })
+        .select('id')
+        .single()
+
+      if (tripError || !trip) {
+        setError('We could not save this trip. Please try again.')
+        return
+      }
+
+      const { data: stop, error: stopError } = await supabase.from('stops').insert({
         trip_id: trip.id,
         city_id: city.id,
         arrival_date: form.startDate,
         departure_date: form.endDate,
         order_index: 0,
-      })
+      }).select('id').single()
+
+      const selectedActivityIds = selected
+        .filter((activity) => activities.some((item) => item.id === activity.id))
+        .map((activity) => activity.id)
+      const { error: activitiesError } = stop && selectedActivityIds.length
+        ? await supabase.from('trip_activities').insert(selectedActivityIds.map((activityId) => ({ stop_id: stop.id, activity_id: activityId })))
+        : { error: null }
+
+      if (stopError || activitiesError) {
+        await supabase.from('trips').delete().eq('id', trip.id)
+        setError('We could not save the trip destination. Please try again.')
+        return
+      }
+
+      setStatus('Trip saved. Your itinerary is ready to build.')
+    } catch {
+      setError('The travel service is unavailable. Please try again.')
+    } finally {
+      setLoading(false)
     }
-    setStatus('Trip saved. Your itinerary is ready to build.')
-    setLoading(false)
   }
 
   return (

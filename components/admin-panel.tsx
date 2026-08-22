@@ -26,6 +26,8 @@ const cities = [
   { name: 'Reykjavík', country: 'Iceland', value: '52%', count: '744 visits' },
 ]
 
+type AnalyticsCity = (typeof cities)[number]
+
 export function AdminPanel() {
   const [activeTab, setActiveTab] = useState<AdminTab>('User Trends and Analytics')
   const [query, setQuery] = useState('')
@@ -64,7 +66,7 @@ export function AdminPanel() {
   )
 }
 
-function AnalyticsVisual({ activeTab, cities }: { activeTab: AdminTab; cities: typeof cities }) {
+function AnalyticsVisual({ activeTab, cities }: { activeTab: AdminTab; cities: AnalyticsCity[] }) {
   const isCities = activeTab === 'Popular cities'
   const isActivities = activeTab === 'Popular Activities'
   const labels = isCities ? cities.map((city) => city.name) : isActivities ? ['Hiking', 'Food tours', 'Museums', 'Paragliding'] : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
