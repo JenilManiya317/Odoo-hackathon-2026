@@ -41,7 +41,12 @@ import {
 const ALL_STYLES = ['Cultural', 'Adventure', 'Coastal', 'City', 'Food & Dining', 'Nature', 'Relaxation']
 const ALL_BUDGETS: UserPreferences['budget_tier'][] = ['Budget', 'Moderate', 'Luxury', 'Ultra-Luxury']
 const ALL_ACCOMMODATIONS: UserPreferences['preferred_accommodation'][] = ['Hostel', 'Airbnb', 'Hotel', 'Resort', 'Villa', 'Riad']
-const FALLBACK_DESTINATION_IMAGE = 'https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=900&q=80'
+
+function getFallbackDestinationImage(name: string, country: string) {
+  const label = `${name} | ${country}`
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 667"><rect width="900" height="667" fill="#163f4a"/><path d="M0 470L210 285l130 110 135-165 185 180 110-85 130 120v222H0z" fill="#2f6870"/><circle cx="705" cy="145" r="70" fill="#f2c078" opacity=".9"/><path d="M450 170c-46 0-83 37-83 83 0 62 83 155 83 155s83-93 83-155c0-46-37-83-83-83zm0 113a30 30 0 1 1 0-60 30 30 0 0 1 0 60z" fill="#f5e6c8"/><text x="450" y="520" fill="#fff" font-family="Georgia,serif" font-size="42" text-anchor="middle">${label}</text><text x="450" y="570" fill="#b9d9d5" font-family="Arial,sans-serif" font-size="22" text-anchor="middle">GlobeTrotter destination</text></svg>`
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`
+}
 
 export function RecommendationsView() {
   const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_USER_PREFERENCES)
@@ -314,7 +319,7 @@ export function RecommendationsView() {
                       className="size-full object-cover transition-transform duration-700 group-hover:scale-105"
                       onError={(event) => {
                         event.currentTarget.onerror = null
-                        event.currentTarget.src = FALLBACK_DESTINATION_IMAGE
+                        event.currentTarget.src = getFallbackDestinationImage(dest.name, dest.country)
                       }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
