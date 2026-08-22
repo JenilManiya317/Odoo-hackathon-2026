@@ -314,7 +314,7 @@ export function RecommendationsView() {
                   {/* Image container */}
                   <div className="relative aspect-[1.35] w-full overflow-hidden bg-muted">
                     <img
-                      src={dest.image}
+                      src={`/api/destination-image?name=${encodeURIComponent(dest.name)}&country=${encodeURIComponent(dest.country)}`}
                       alt={dest.name}
                       className="size-full object-cover transition-transform duration-700 group-hover:scale-105"
                       onError={(event) => {
