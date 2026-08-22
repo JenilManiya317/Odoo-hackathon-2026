@@ -22,6 +22,12 @@ export function CommunityFeed() {
   const [userName, setUserName] = useState('Traveler')
   const [error, setError] = useState('')
 
+  function describeDatabaseError(message: string) {
+    return message.includes('community_') || message.includes('relation')
+      ? 'Community storage is not configured. Apply supabase/migrations/010_community.sql in Supabase.'
+      : 'We could not complete that action. Please try again.'
+  }
+
   useEffect(() => {
     const supabase = createClient()
     let chatChannel: ReturnType<typeof supabase.channel> | undefined
@@ -34,7 +40,7 @@ export function CommunityFeed() {
         user ? supabase.from('community_likes').select('post_id').eq('user_id', user.id) : Promise.resolve({ data: [] }),
         supabase.from('community_likes').select('post_id'),
       ])
-      if (postsError) setError('Community posts are unavailable. Apply migration 010 in Supabase.')
+      if (postsError) setError(describeDatabaseError(postsError.message))
       const likedIds = new Set((likes ?? []).map((like) => like.post_id))
       const likeCounts = new Map<string, number>()
       ;(allLikes ?? []).forEach((like) => likeCounts.set(like.post_id, (likeCounts.get(like.post_id) ?? 0) + 1))
@@ -59,7 +65,7 @@ export function CommunityFeed() {
     if (!userId) return setError('Please log in to share a story.')
     if (!postTitle.trim() || !postBody.trim()) return setError('Add a title and story before publishing.')
     const { data, error: postError } = await createClient().from('community_posts').insert({ author_id: userId, author_name: userName, title: postTitle.trim(), body: postBody.trim(), location: 'My next destination', tag: 'Travel story' }).select('id, author_id, author_name, title, body, location, tag').single()
-    if (postError || !data) return setError('We could not publish your story.')
+    if (postError || !data) return setError(postError ? describeDatabaseError(postError.message) : 'We could not publish your story.')
     setPosts((current) => [{ id: data.id, authorId: data.author_id, name: data.author_name, initials: data.author_name.slice(0, 2).toUpperCase(), location: data.location, title: data.title, body: data.body, tag: data.tag, likes: 0, liked: false }, ...current])
     setPostTitle(''); setPostBody(''); setError('')
   }
@@ -69,7 +75,7 @@ export function CommunityFeed() {
     const supabase = createClient()
     const nextLiked = !post.liked
     const result = nextLiked ? await supabase.from('community_likes').insert({ post_id: post.id, user_id: userId }) : await supabase.from('community_likes').delete().match({ post_id: post.id, user_id: userId })
-    if (result.error) return setError('We could not update that like.')
+    if (result.error) return setError(describeDatabaseError(result.error.message))
     setPosts((current) => current.map((item) => item.id === post.id ? { ...item, liked: nextLiked, likes: item.likes + (nextLiked ? 1 : -1) } : item))
   }
 
@@ -78,7 +84,7 @@ export function CommunityFeed() {
     if (!userId) return setError('Please log in to join the chat.')
     if (!chatBody.trim()) return
     const { data, error: chatError } = await createClient().from('community_messages').insert({ user_id: userId, author_name: userName, body: chatBody.trim() }).select('id, author_name, body, created_at').single()
-    if (chatError || !data) return setError('We could not send your message.')
+    if (chatError || !data) return setError(chatError ? describeDatabaseError(chatError.message) : 'We could not send your message.')
     setMessages((current) => [...current, { id: data.id, authorName: data.author_name, body: data.body, createdAt: data.created_at }]); setChatBody('')
   }
 
