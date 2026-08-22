@@ -62,7 +62,7 @@ export default function Page() {
           <div className="mt-10 flex items-center justify-between border-t border-border pt-8"><h2 className="font-serif text-2xl">Previous trips</h2><button className="text-sm font-semibold text-accent hover:underline">See archive <ArrowRight size={14} className="ml-1 inline" /></button></div>
           <div className="mt-4 grid gap-4 md:grid-cols-3">{previousTrips.map((trip) => <article key={trip.name} className="group overflow-hidden rounded-2xl border border-border bg-muted/35"><div className="relative aspect-[1.8] overflow-hidden"><img src={trip.image} alt={trip.name} className="size-full object-cover transition-transform duration-500 group-hover:scale-105" /><span className="absolute bottom-3 left-3 rounded-full bg-black/45 px-3 py-1 text-[11px] text-white backdrop-blur-sm">{trip.places}</span></div><div className="p-4"><h3 className="font-serif text-lg">{trip.name}</h3><p className="mt-1 text-xs text-muted-foreground">{trip.dates}</p></div></article>)}</div>
         </section>
-        <button className="fixed bottom-5 right-5 z-10 flex items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-bold text-accent-foreground shadow-lg shadow-accent/20 transition-transform hover:scale-105 sm:bottom-8 sm:right-8"><Plus size={17} /> Plan a trip</button>
+        <Link href="/trips/new" className="fixed bottom-5 right-5 z-10 flex items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-bold text-accent-foreground shadow-lg shadow-accent/20 transition-transform hover:scale-105 sm:bottom-8 sm:right-8"><Plus size={17} /> Plan a trip</Link>
       </div>
     </main>
   )

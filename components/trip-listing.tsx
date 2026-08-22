@@ -1,0 +1,77 @@
+'use client'
+
+import Link from 'next/link'
+import { useMemo, useState } from 'react'
+import { CalendarDays, ChevronDown, Compass, Filter, MapPin, Search, SlidersHorizontal, UserRound } from 'lucide-react'
+
+type Trip = {
+  name: string
+  destination: string
+  dates: string
+  status: 'Ongoing' | 'Up-coming' | 'Completed'
+  image: string
+  places: number
+  accent: string
+}
+
+const trips: Trip[] = [
+  { name: 'A Week in Kyoto', destination: 'Kyoto, Japan', dates: 'Apr 18 — Apr 26, 2026', status: 'Ongoing', image: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1200&q=85', places: 8, accent: 'Sakura season' },
+  { name: 'Amalfi Coast Escape', destination: 'Amalfi, Italy', dates: 'Jun 08 — Jun 16, 2026', status: 'Up-coming', image: 'https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=1200&q=85', places: 12, accent: 'Coastal Italy' },
+  { name: 'Lisbon & Porto', destination: 'Portugal', dates: 'May 12 — May 21, 2024', status: 'Completed', image: 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=1200&q=85', places: 12, accent: 'Iberian sunshine' },
+  { name: 'The Greek Islands', destination: 'Cyclades, Greece', dates: 'Aug 04 — Aug 15, 2023', status: 'Completed', image: 'https://images.unsplash.com/photo-1530841377377-3ff06c0ca713?auto=format&fit=crop&w=1200&q=85', places: 8, accent: 'Island hopping' },
+  { name: 'New York City', destination: 'New York, USA', dates: 'Oct 19 — Oct 25, 2022', status: 'Completed', image: 'https://images.unsplash.com/photo-1496588152823-86ff7695e68f?auto=format&fit=crop&w=1200&q=85', places: 15, accent: 'City lights' },
+]
+
+const categories: Trip['status'][] = ['Ongoing', 'Up-coming', 'Completed']
+
+export function TripListing() {
+  const [query, setQuery] = useState('')
+  const [groupBy, setGroupBy] = useState<'status' | 'destination'>('status')
+  const [sortBy, setSortBy] = useState<'recent' | 'name'>('recent')
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [showCompleted, setShowCompleted] = useState(true)
+
+  const filteredTrips = useMemo(() => {
+    const result = trips.filter((trip) => `${trip.name} ${trip.destination}`.toLowerCase().includes(query.toLowerCase()) && (showCompleted || trip.status !== 'Completed'))
+    return [...result].sort((a, b) => sortBy === 'name' ? a.name.localeCompare(b.name) : trips.indexOf(a) - trips.indexOf(b))
+  }, [query, showCompleted, sortBy])
+
+  return (
+    <main className="min-h-screen bg-background px-3 py-3 text-foreground sm:px-6 sm:py-6">
+      <div className="mx-auto min-h-[calc(100vh-1.5rem)] max-w-[980px] overflow-hidden rounded-[26px] border border-border bg-card shadow-2xl shadow-black/20 sm:min-h-[calc(100vh-3rem)]">
+        <header className="flex h-[72px] items-center justify-between border-b border-border px-5 sm:px-8">
+          <Link href="/" className="flex items-center gap-3" aria-label="Go to GlobeTrotter home">
+            <span className="grid size-9 place-items-center rounded-xl bg-primary text-primary-foreground"><Compass size={19} /></span>
+            <span className="font-serif text-xl font-bold tracking-tight">GlobeTrotter</span>
+          </Link>
+          <Link href="/auth" className="grid size-10 place-items-center rounded-full border border-border bg-muted/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" aria-label="Open profile"><UserRound size={18} /></Link>
+        </header>
+
+        <section className="border-b border-border px-5 py-5 sm:px-8">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+            <label className="flex min-w-0 flex-1 items-center gap-3 rounded-xl border border-border bg-background px-4 py-3">
+              <Search size={17} className="shrink-0 text-muted-foreground" />
+              <span className="sr-only">Search trips</span>
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search bar ......" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />
+            </label>
+            <div className="flex gap-2 overflow-x-auto">
+              <button onClick={() => setGroupBy(groupBy === 'status' ? 'destination' : 'status')} className="flex items-center gap-2 whitespace-nowrap rounded-xl border border-border px-4 py-3 text-sm transition-colors hover:bg-muted"><SlidersHorizontal size={15} /> Group by <span className="text-muted-foreground">{groupBy === 'status' ? 'Status' : 'Place'}</span></button>
+              <button onClick={() => setFilterOpen(!filterOpen)} aria-expanded={filterOpen} className="flex items-center gap-2 whitespace-nowrap rounded-xl border border-border px-4 py-3 text-sm transition-colors hover:bg-muted"><Filter size={15} /> Filter</button>
+              <button onClick={() => setSortBy(sortBy === 'recent' ? 'name' : 'recent')} className="flex items-center gap-2 whitespace-nowrap rounded-xl border border-border px-4 py-3 text-sm transition-colors hover:bg-muted">Sort by <span className="text-muted-foreground">{sortBy === 'recent' ? 'Recent' : 'Name'}</span><ChevronDown size={14} /></button>
+            </div>
+          </div>
+          {filterOpen && <div className="mt-3 flex items-center justify-between rounded-xl bg-muted/50 px-4 py-3 text-sm"><span className="text-muted-foreground">Show completed trips</span><button onClick={() => setShowCompleted(!showCompleted)} className={`h-6 w-11 rounded-full p-1 transition-colors ${showCompleted ? 'bg-accent' : 'bg-border'}`} aria-label="Toggle completed trips"><span className={`block size-4 rounded-full bg-background transition-transform ${showCompleted ? 'translate-x-5' : ''}`} /></button></div>}
+        </section>
+
+        <section className="space-y-8 px-5 py-6 sm:px-8 sm:py-8">
+          {categories.map((category) => {
+            const categoryTrips = filteredTrips.filter((trip) => trip.status === category)
+            if (!categoryTrips.length) return null
+            return <div key={category}><div className="mb-3 flex items-center justify-between"><h2 className="font-serif text-2xl sm:text-3xl">{category}</h2><span className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{categoryTrips.length} {categoryTrips.length === 1 ? 'trip' : 'trips'}</span></div><div className="space-y-3">{categoryTrips.map((trip) => <Link href="/trips/itinerary" key={trip.name} className="group relative flex min-h-[150px] overflow-hidden rounded-2xl border border-border bg-muted/30 transition-all hover:-translate-y-0.5 hover:border-accent/60 hover:shadow-lg hover:shadow-black/20"><div className="relative w-[34%] min-w-[120px] overflow-hidden sm:w-[28%]"><img src={trip.image} alt={`${trip.destination} travel scene`} className="size-full object-cover transition-transform duration-500 group-hover:scale-105" /><div className="absolute inset-0 bg-gradient-to-r from-transparent to-card/30" /></div><div className="flex min-w-0 flex-1 flex-col justify-center gap-2 p-4 sm:p-5"><div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-accent/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-accent">{trip.accent}</span><span className="text-xs text-muted-foreground">{trip.places} places</span></div><h3 className="truncate font-serif text-xl sm:text-2xl">{trip.name}</h3><div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground"><span className="flex items-center gap-1.5"><MapPin size={13} className="text-accent" />{trip.destination}</span><span className="flex items-center gap-1.5"><CalendarDays size={13} />{trip.dates}</span></div><p className="mt-1 text-sm text-muted-foreground">Short Over View of the Trip <span className="text-accent transition-transform group-hover:translate-x-1">→</span></p></div></Link>)}</div></div>
+          })}
+          {!filteredTrips.length && <div className="rounded-2xl border border-dashed border-border py-16 text-center"><Search className="mx-auto text-muted-foreground" size={26} /><p className="mt-3 text-sm text-muted-foreground">No trips match your search.</p></div>}
+        </section>
+      </div>
+    </main>
+  )
+}
