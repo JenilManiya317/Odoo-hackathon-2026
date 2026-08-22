@@ -3,6 +3,7 @@
 alter table public.profiles add column if not exists phone text;
 alter table public.profiles add column if not exists city text;
 alter table public.profiles add column if not exists country text;
+alter table public.profiles add column if not exists email text;
 
 alter table public.cities add column if not exists image_url text;
 alter table public.cities add column if not exists region text;
@@ -56,16 +57,18 @@ create policy "Users can delete their favorites" on public.user_favorites for de
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, name, phone, city, country)
+  insert into public.profiles (id, name, email, phone, city, country)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'name', concat_ws(' ', new.raw_user_meta_data->>'first_name', new.raw_user_meta_data->>'last_name')),
+    new.email,
     new.raw_user_meta_data->>'phone',
     new.raw_user_meta_data->>'city',
     new.raw_user_meta_data->>'country'
   )
   on conflict (id) do update set
     name = excluded.name,
+    email = excluded.email,
     phone = excluded.phone,
     city = excluded.city,
     country = excluded.country;
