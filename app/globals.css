@@ -1,0 +1,63 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --font-sans: 'Geist', 'Geist Fallback';
+  --font-serif: 'DM Serif Display', 'Georgia', serif;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+}
+
+:root {
+  color-scheme: dark;
+  --background: oklch(0.14 0.018 215);
+  --foreground: oklch(0.94 0.014 85);
+  --card: oklch(0.18 0.019 215);
+  --card-foreground: oklch(0.94 0.014 85);
+  --popover: oklch(0.2 0.02 215);
+  --popover-foreground: oklch(0.94 0.014 85);
+  --primary: oklch(0.88 0.025 85);
+  --primary-foreground: oklch(0.16 0.018 215);
+  --secondary: oklch(0.24 0.02 215);
+  --secondary-foreground: oklch(0.94 0.014 85);
+  --muted: oklch(0.23 0.02 215);
+  --muted-foreground: oklch(0.68 0.018 210);
+  --accent: oklch(0.76 0.105 70);
+  --accent-foreground: oklch(0.18 0.02 215);
+  --border: oklch(0.8 0.015 210 / 18%);
+  --input: oklch(0.8 0.015 210 / 18%);
+  --ring: oklch(0.76 0.105 70);
+}
+
+* { @apply border-border; }
+html { background: var(--background); }
+body { @apply bg-background text-foreground font-sans; }
+button, input { font: inherit; }
+button { cursor: pointer; }
+::selection { background: oklch(0.76 0.105 70 / 35%); }
+* { scrollbar-width: thin; scrollbar-color: oklch(0.8 0.015 210 / 25%) transparent; }
+@media (prefers-reduced-motion: no-preference) {
+  article, section { animation: rise-in .55s ease-out both; }
+}
+@keyframes rise-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
