@@ -29,8 +29,10 @@ import {
   getRecommendedDestinations,
   DestinationRecommendation
 } from '@/lib/recommendations'
+import { createClient } from '@/lib/supabase/client'
 
 type ProfileTrip = {
+  id?: string
   title: string
   destination: string
   dates: string
@@ -39,7 +41,7 @@ type ProfileTrip = {
 }
 
 const staticTrips: ProfileTrip[] = [
-  { title: 'Japan in Spring', destination: 'Kyoto, Japan', dates: 'Apr 18 — Apr 26, 2026', image: 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?auto=format&fit=crop&w=900&q=85', kind: 'Preplanned' },
+  { id: 'static-1', title: 'Japan in Spring', destination: 'Kyoto, Japan', dates: 'Apr 18 — Apr 26, 2026', image: 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?auto=format&fit=crop&w=900&q=85', kind: 'Preplanned' },
   { title: 'Amalfi Coast Escape', destination: 'Amalfi, Italy', dates: 'Jun 08 — Jun 16, 2026', image: 'https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=900&q=85', kind: 'Preplanned' },
   { title: 'Iceland Road Trip', destination: 'Reykjavik, Iceland', dates: 'Sep 02 — Sep 12, 2026', image: 'https://images.unsplash.com/photo-1504893524553-b855bce32c67?auto=format&fit=crop&w=900&q=85', kind: 'Preplanned' },
   { title: 'Lisbon & Porto', destination: 'Portugal', dates: 'May 12 — May 21, 2024', image: 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=900&q=85', kind: 'Previous' },
@@ -67,7 +69,7 @@ function ProfileTripCard({ trip }: { trip: ProfileTrip }) {
           </p>
         </div>
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><CalendarDays size={13} />{trip.dates}</p>
-        <Link href="/trips/itinerary" className="mt-auto flex items-center justify-center gap-2 rounded-xl border border-border px-3 py-2.5 text-sm font-semibold transition-colors hover:bg-muted">
+        <Link href={trip.id ? `/trips/itinerary?tripId=${trip.id}` : '/trips'} className="mt-auto flex items-center justify-center gap-2 rounded-xl border border-border px-3 py-2.5 text-sm font-semibold transition-colors hover:bg-muted">
           View trip <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" />
         </Link>
       </div>
@@ -78,7 +80,9 @@ function ProfileTripCard({ trip }: { trip: ProfileTrip }) {
 export function UserProfile() {
   const [editing, setEditing] = useState(false)
   const [editingPrefs, setEditingPrefs] = useState(false)
-  const [name, setName] = useState('Alex Morgan')
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [profileTrips, setProfileTrips] = useState<ProfileTrip[]>([])
   const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_USER_PREFERENCES)
   const [favorites, setFavorites] = useState<string[]>([])
   const [supabaseTrips, setSupabaseTrips] = useState<string[]>([])
@@ -87,7 +91,12 @@ export function UserProfile() {
   // Fetch preferences and trips from Supabase on mount
   useEffect(() => {
     async function init() {
-      const [prefs, favs, trips] = await Promise.all([
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      setEmail(user.email ?? '')
+      const [{ data: profile }, prefs, favs, trips] = await Promise.all([
+        supabase.from('profiles').select('name').eq('id', user.id).maybeSingle(),
         getUserPreferences(),
         getUserFavorites(),
         getUserTripsFromSupabase(),
@@ -95,17 +104,28 @@ export function UserProfile() {
       setPreferences(prefs)
       setFavorites(favs)
       setSupabaseTrips(trips.map((t) => t.destination || t.name))
+      setName(profile?.name || user.user_metadata?.name || user.email?.split('@')[0] || '')
+      setProfileTrips(trips.map((trip, index) => ({ id: trip.id, title: trip.name, destination: trip.destination, dates: `${trip.start_date ?? 'Date not set'} — ${trip.end_date ?? 'Date not set'}`, image: `https://images.unsplash.com/photo-${['1555881400-74d7acaacd8b', '1530841377377-3ff06c0ca713', '1496588152823-86ff7695e68f'][index % 3]}?auto=format&fit=crop&w=900&q=85`, kind: trip.end_date && trip.end_date < new Date().toISOString().slice(0, 10) ? 'Previous' : 'Preplanned' })))
     }
     init()
   }, [])
+
+  async function saveProfileName() {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user || !name.trim()) return
+    const { error } = await supabase.from('profiles').upsert({ id: user.id, name: name.trim() })
+    if (!error) setSavedMsg(true)
+    setEditing(false)
+  }
 
   // Calculate curated recommendations for profile
   const curatedDestinations: DestinationRecommendation[] = useMemo(() => {
     return getRecommendedDestinations(preferences, supabaseTrips, favorites).slice(0, 3)
   }, [preferences, supabaseTrips, favorites])
 
-  const preplanned = staticTrips.filter((trip) => trip.kind === 'Preplanned')
-  const previous = staticTrips.filter((trip) => trip.kind === 'Previous')
+  const preplanned = profileTrips.filter((trip) => trip.kind === 'Preplanned')
+  const previous = profileTrips.filter((trip) => trip.kind === 'Previous')
 
   // Save updated preferences to Supabase
   async function handleSavePreferences(updated: UserPreferences) {
@@ -137,7 +157,7 @@ export function UserProfile() {
             <Link href="/recommendations" className="flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/10 px-3.5 py-1.5 text-xs font-semibold text-accent hover:bg-accent hover:text-accent-foreground transition">
               <Sparkles size={14} /> AI Matches
             </Link>
-            <Link href="/auth" aria-label="Open account" className="grid size-10 place-items-center rounded-full border border-border bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground">
+            <Link href="/profile" aria-label="Open account" className="grid size-10 place-items-center rounded-full border border-border bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground">
               <UserRound size={18} />
             </Link>
           </div>
@@ -166,10 +186,10 @@ export function UserProfile() {
                   ) : (
                     <h1 className="mt-1 font-serif text-2xl sm:text-3xl">{name}</h1>
                   )}
-                  <p className="mt-1 text-sm text-muted-foreground">alex.morgan@example.com</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{email}</p>
                 </div>
                 <button
-                  onClick={() => setEditing(!editing)}
+                  onClick={() => editing ? saveProfileName() : setEditing(true)}
                   className="flex items-center gap-2 rounded-xl border border-border px-3.5 py-2 text-xs font-semibold transition-colors hover:bg-muted"
                 >
                   <Edit3 size={14} />{editing ? 'Save details' : 'Edit name'}
@@ -355,7 +375,7 @@ export function UserProfile() {
               <span className="text-sm text-muted-foreground">{preplanned.length} trips</span>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {preplanned.map((trip) => <ProfileTripCard key={trip.title} trip={trip} />)}
+              {preplanned.map((trip) => <ProfileTripCard key={trip.id ?? trip.title} trip={trip} />)}
             </div>
           </section>
 
@@ -368,7 +388,7 @@ export function UserProfile() {
               <span className="text-sm text-muted-foreground">{previous.length} trips</span>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {previous.map((trip) => <ProfileTripCard key={trip.title} trip={trip} />)}
+              {previous.map((trip) => <ProfileTripCard key={trip.id ?? trip.title} trip={trip} />)}
             </div>
           </section>
         </div>

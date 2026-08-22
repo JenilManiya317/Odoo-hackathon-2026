@@ -1,32 +1,31 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, ArrowRight, ChevronDown, SlidersHorizontal, UserRound } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 const weekDays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
 const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
-type TripEvent = { name: string; start: number; end: number; tone: string }
-
-const eventsByMonth: Record<string, TripEvent[]> = {
-  '2024-0': [
-    { name: 'PARIS TRIP', start: 4, end: 8, tone: 'bg-accent text-accent-foreground' },
-    { name: 'NYC GETAWAY', start: 14, end: 16, tone: 'bg-primary text-primary-foreground' },
-    { name: 'JAPAN ADVENTURE', start: 17, end: 21, tone: 'bg-secondary text-secondary-foreground' },
-    { name: 'NYC GETAWAY', start: 27, end: 28, tone: 'bg-accent text-accent-foreground' },
-  ],
-  '2024-1': [{ name: 'DESERT ESCAPE', start: 9, end: 12, tone: 'bg-primary text-primary-foreground' }],
-}
-
-function formatKey(date: Date) {
-  return `${date.getFullYear()}-${date.getMonth()}`
-}
+type TripEvent = { name: string; start: string; end: string; tone: string }
 
 export function CalendarView() {
-  const [month, setMonth] = useState(new Date(2024, 0, 1))
+  const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
+  const [events, setEvents] = useState<TripEvent[]>([])
   const [query, setQuery] = useState('')
   const [grouped, setGrouped] = useState(false)
   const [filtered, setFiltered] = useState(false)
+
+  useEffect(() => {
+    async function loadTrips() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data } = await supabase.from('trips').select('name, start_date, end_date').eq('user_id', user.id).not('start_date', 'is', null).not('end_date', 'is', null)
+      setEvents((data ?? []).map((trip, index) => ({ name: trip.name.toUpperCase(), start: trip.start_date!, end: trip.end_date!, tone: index % 2 ? 'bg-primary text-primary-foreground' : 'bg-accent text-accent-foreground' })))
+    }
+    loadTrips()
+  }, [])
 
   const days = useMemo(() => {
     const firstDay = new Date(month.getFullYear(), month.getMonth(), 1).getDay()
@@ -37,8 +36,11 @@ export function CalendarView() {
     return cells
   }, [month])
 
-  const events = (eventsByMonth[formatKey(month)] ?? []).filter((event) => !query || event.name.toLowerCase().includes(query.toLowerCase()))
-  const eventForDay = (day: number) => events.find((event) => day >= event.start && day <= event.end)
+  const visibleEvents = events.filter((event) => !query || event.name.toLowerCase().includes(query.toLowerCase()))
+  const eventForDay = (day: number) => visibleEvents.find((event) => {
+    const date = new Date(month.getFullYear(), month.getMonth(), day).getTime()
+    return date >= new Date(`${event.start}T00:00:00`).getTime() && date <= new Date(`${event.end}T00:00:00`).getTime()
+  })
 
   return (
     <main className="min-h-screen bg-background px-4 py-5 text-foreground sm:px-6 lg:px-10">
@@ -77,10 +79,10 @@ export function CalendarView() {
             <div className="grid grid-cols-7">
               {days.map((day, index) => {
                 const event = day ? eventForDay(day) : undefined
-                const starts = event?.start === day
+                const starts = event ? new Date(`${event.start}T00:00:00`).toDateString() === new Date(month.getFullYear(), month.getMonth(), day ?? 0).toDateString() : false
                 return <div key={`${day}-${index}`} className={`relative min-h-20 border-b border-r border-primary-foreground/10 p-2 sm:min-h-28 sm:p-3 ${day && index % 7 > 4 ? 'bg-primary-foreground/[0.03]' : ''}`}>
                   {day && <span className="text-sm font-medium">{day}</span>}
-                  {event && <div className={`absolute inset-x-1 bottom-2 rounded-md px-1.5 py-1 text-[9px] font-bold leading-tight sm:inset-x-2 sm:text-[10px] ${event.tone} ${starts ? '' : 'opacity-80'}`} title={event.name}>{starts || day === event.start ? event.name : ' '}</div>}
+                  {event && <div className={`absolute inset-x-1 bottom-2 rounded-md px-1.5 py-1 text-[9px] font-bold leading-tight sm:inset-x-2 sm:text-[10px] ${event.tone} ${starts ? '' : 'opacity-80'}`} title={event.name}>{starts ? event.name : ' '}</div>}
                 </div>
               })}
             </div>
