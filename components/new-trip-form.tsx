@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import { ArrowLeft, CalendarDays, Check, Compass, Loader2, MapPin, Plus, Sparkles } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getUserPreferences, UserPreferences, DEFAULT_USER_PREFERENCES } from '@/lib/supabase/user-data'
+import additionalDestinations from '@/data/destinations.json'
 
 type City = { id: string; name: string; country: string; image_url: string | null }
 type Activity = { id: string; name: string; description: string | null; image_url: string | null; city_id: string | null; cost: number | null }
@@ -19,6 +20,13 @@ const fallbackImages = [
   'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=700&q=80',
 ]
 
+const catalogCities: City[] = additionalDestinations.map((destination) => ({
+  id: `catalog-${destination.id}`,
+  name: destination.name,
+  country: destination.country,
+  image_url: destination.image,
+}))
+
 export default function NewTripForm({ cities, activities }: { cities: City[]; activities: Activity[] }) {
   const searchParams = useSearchParams()
   const activityId = searchParams.get('activityId')
@@ -29,11 +37,15 @@ export default function NewTripForm({ cities, activities }: { cities: City[]; ac
   const [status, setStatus] = useState('')
   const [loading, setLoading] = useState(false)
   const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_USER_PREFERENCES)
+  const availableCities = useMemo(() => {
+    const merged = [...cities, ...catalogCities]
+    return Array.from(new Map(merged.map((city) => [`${city.name}, ${city.country}`, city])).values())
+  }, [cities])
 
   useEffect(() => {
-    if (!cityParam || !cities.some((city) => `${city.name}, ${city.country}` === cityParam)) return
+    if (!cityParam || !availableCities.some((city) => `${city.name}, ${city.country}` === cityParam)) return
     setForm((current) => ({ ...current, place: cityParam }))
-  }, [cities, cityParam])
+  }, [availableCities, cityParam])
 
   useEffect(() => {
     async function load() {
@@ -51,7 +63,7 @@ export default function NewTripForm({ cities, activities }: { cities: City[]; ac
 
   const suggestions = useMemo(() => {
     if (activities.length) return activities
-    return cities.slice(0, 6).map((city) => ({
+    return availableCities.slice(0, 6).map((city) => ({
       id: city.id,
       name: `Explore ${city.name}`,
       description: `${city.name}, ${city.country}`,
@@ -59,7 +71,7 @@ export default function NewTripForm({ cities, activities }: { cities: City[]; ac
       city_id: city.id,
       cost: null,
     }))
-  }, [activities, cities])
+  }, [activities, availableCities])
 
   const update = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }))
   const toggle = (activity: Activity) => setSelected((current) => current.some((item) => item.id === activity.id) ? current.filter((item) => item.id !== activity.id) : [...current, activity])
@@ -79,10 +91,30 @@ export default function NewTripForm({ cities, activities }: { cities: City[]; ac
         return
       }
 
-      const city = cities.find((item) => `${item.name}, ${item.country}` === form.place)
+      let city = availableCities.find((item) => `${item.name}, ${item.country}` === form.place)
       if (!city) {
         setError('Please choose a valid destination.')
         return
+      }
+
+      if (city.id.startsWith('catalog-')) {
+        const catalogDestination = additionalDestinations.find((destination) => destination.id === city?.id.replace('catalog-', ''))
+        const { data: createdCity, error: cityError } = await supabase
+          .from('cities')
+          .insert({
+            name: city.name,
+            country: city.country,
+            cost_index: catalogDestination?.avgDailyCost ?? 0,
+            popularity: 0,
+            image_url: city.image_url,
+          })
+          .select('id, name, country, image_url')
+          .single()
+        if (cityError || !createdCity) {
+          setError('We could not save this destination. Please try again.')
+          return
+        }
+        city = createdCity
       }
 
       const { data: trip, error: tripError } = await supabase
@@ -179,7 +211,7 @@ export default function NewTripForm({ cities, activities }: { cities: City[]; ac
                 <span className="mb-2 block text-xs font-semibold text-muted-foreground">Select a place</span>
                 <select required value={form.place} onChange={(e) => update('place', e.target.value)} className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:border-accent">
                   <option value="">Choose a destination</option>
-                  {cities.map((city) => <option key={city.id} value={`${city.name}, ${city.country}`}>{city.name}, {city.country}</option>)}
+                  {availableCities.map((city) => <option key={city.id} value={`${city.name}, ${city.country}`}>{city.name}, {city.country}</option>)}
                 </select>
               </label>
               <label>
