@@ -20,7 +20,8 @@ import {
 } from 'lucide-react'
 import {
   getRecommendedDestinations,
-  DestinationRecommendation
+  DestinationRecommendation,
+  formatDestinationDailyPrice
 } from '@/lib/recommendations'
 import {
   getUserPreferences,
@@ -247,7 +248,7 @@ export default function Page() {
                     </div>
                     <div className="flex flex-col gap-2 pt-2 border-t border-border/50">
                       <div className="flex items-center justify-between text-[11px] text-muted-foreground font-semibold">
-                        <span>Est. ₹{pick.avgDailyCost}/day</span>
+                        <span>Est. {formatDestinationDailyPrice(pick.avgDailyCost)}</span>
                         <span>Stay: {pick.recommendedAccommodation}</span>
                       </div>
                       <Link
@@ -344,7 +345,7 @@ export default function Page() {
                       </div>
                       <div className="text-right">
                         <span className="block text-[10px] text-white/70 uppercase">Est. Cost</span>
-                        <span className="text-[11px] font-bold text-accent">₹{destination.avgDailyCost}/day</span>
+                        <span className="text-[11px] font-bold text-accent">{formatDestinationDailyPrice(destination.avgDailyCost)}</span>
                       </div>
                     </div>
                     <p className="mt-1 mb-2.5 text-[11px] text-accent/90 line-clamp-1 font-medium">{destination.matchReasons[0]}</p>

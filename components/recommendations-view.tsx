@@ -26,7 +26,8 @@ import {
   DestinationRecommendation,
   ActivityRecommendation,
   getRecommendedDestinations,
-  getRecommendedActivities
+  getRecommendedActivities,
+  formatDestinationDailyPrice
 } from '@/lib/recommendations'
 import {
   getUserPreferences,
@@ -379,7 +380,7 @@ export function RecommendationsView() {
                     <div className="grid grid-cols-3 gap-2 rounded-xl border border-border bg-background/50 p-2.5 text-center text-xs">
                       <div>
                         <span className="block text-[10px] text-muted-foreground uppercase">Est. Cost</span>
-                        <span className="font-semibold text-foreground">₹{dest.avgDailyCost}/day</span>
+                        <span className="font-semibold text-foreground">{formatDestinationDailyPrice(dest.avgDailyCost)}</span>
                       </div>
                       <div>
                         <span className="block text-[10px] text-muted-foreground uppercase">Stay</span>

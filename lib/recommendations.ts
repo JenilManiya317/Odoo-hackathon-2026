@@ -36,6 +36,12 @@ export type ActivityRecommendation = {
   matchReason: string
 }
 
+export function formatDestinationDailyPrice(avgDailyCost: number): string {
+  const normalized = Math.max(0, Math.min(1, (avgDailyCost - 35) / (350 - 35)))
+  const lower = Math.round((15000 + normalized * 4000) / 500) * 500
+  return `₹${lower.toLocaleString('en-IN')}–₹${(lower + 1000).toLocaleString('en-IN')}/day`
+}
+
 export const DESTINATIONS_CATALOG: Omit<DestinationRecommendation, 'matchScore' | 'matchReasons'>[] = [
   {
     id: 'kyoto-japan',
